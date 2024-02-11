@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use mpi::{
     datatype::DynBufferMut, point_to_point::Message, topology::SimpleCommunicator, traits::*, Rank,
     Tag,
@@ -15,7 +17,7 @@ fn main() {
     let rank = world.rank();
 
     if rank == 0 {
-        let work_queue = (100..120)
+        let mut work_queue = (100..120)
             .into_iter()
             .map(|t| Box::new(SquareTask::new(t)) as Box<dyn Task>)
             .chain(
@@ -24,23 +26,22 @@ fn main() {
                     .map(|t| Box::new(FibonacciTask::new(t)) as Box<dyn Task>),
             )
             .collect::<Vec<_>>();
-        let mut send_idx = 0;
-        let mut recv_idx = 0;
+        let mut recv_queue = Vec::new();
+        let total = work_queue.len();
 
         for dest in 1..size {
-            work_queue[send_idx].send(&world, dest);
-            send_idx += 1;
+            if let Some(task) = work_queue.pop() {
+                task.send(&world, dest);
+            }
         }
 
-        while recv_idx < work_queue.len() {
+        while recv_queue.len() < total {
             let (msg, status) = world.any_process().matched_probe();
 
-            FUNCTIONS[status.tag() as usize].receive(msg);
-            recv_idx += 1;
+            recv_queue.push(FUNCTIONS[status.tag() as usize].receive(msg));
 
-            if send_idx < work_queue.len() {
-                work_queue[send_idx].send(&world, status.source_rank());
-                send_idx += 1;
+            if let Some(task) = work_queue.pop() {
+                task.send(&world, status.source_rank());
             }
         }
     } else {
@@ -63,9 +64,7 @@ fn worker(world: &SimpleCommunicator) {
 trait Function {
     fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool;
 
-    fn receive(&self, msg: Message);
-
-    fn tag(&self) -> Tag;
+    fn receive(&self, msg: Message) -> Box<dyn Any>;
 }
 
 trait Task {
@@ -84,13 +83,10 @@ impl Function for Fibonacci {
         false
     }
 
-    fn receive(&self, msg: Message) {
+    fn receive(&self, msg: Message) -> Box<dyn Any> {
         let (data, status) = msg.matched_receive::<u64>();
         println!("root got data {:?} from {}", data, status.source_rank());
-    }
-
-    fn tag(&self) -> Tag {
-        FIBONACCI_TAG
+        Box::new(data)
     }
 }
 
@@ -124,13 +120,10 @@ impl Function for Square {
         false
     }
 
-    fn receive(&self, msg: Message) {
+    fn receive(&self, msg: Message) -> Box<dyn Any> {
         let (data, status) = msg.matched_receive::<i32>();
         println!("root got data {:?} from {}", data, status.source_rank());
-    }
-
-    fn tag(&self) -> Tag {
-        SQUARE_TAG
+        Box::new(data)
     }
 }
 
@@ -162,10 +155,8 @@ impl Function for End {
         true
     }
 
-    fn receive(&self, _msg: Message) {}
-
-    fn tag(&self) -> Tag {
-        END_TAG
+    fn receive(&self, _msg: Message) -> Box<dyn Any> {
+        Box::new(())
     }
 }
 
