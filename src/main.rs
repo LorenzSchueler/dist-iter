@@ -1,52 +1,14 @@
-use std::ops::Deref;
-
 use mpi::{
-    datatype::DynBufferMut, environment::Universe, point_to_point::Message,
-    topology::SimpleCommunicator, traits::*, Tag,
+    datatype::DynBufferMut, point_to_point::Message, topology::SimpleCommunicator, traits::*, Tag,
 };
 
-struct UniverseGuard {
-    comm: Universe,
-}
+mod universe_guard;
 
-impl Drop for UniverseGuard {
-    fn drop(&mut self) {
-        let world = self.world();
-        if world.rank() == 0 {
-            let size = world.size();
-            let function = END_TAG;
-            let data: [u8; 0] = [];
-            mpi::request::scope(|scope| {
-                let mut send_requests = vec![];
-                println!("sending end");
-                for dest in 1..size {
-                    send_requests.push(
-                        world
-                            .process_at_rank(dest)
-                            .immediate_send_with_tag(scope, &data, function),
-                    );
-                }
-                for req in send_requests {
-                    req.wait_without_status();
-                }
-                println!("done");
-            });
-        }
-    }
-}
-
-impl Deref for UniverseGuard {
-    type Target = Universe;
-
-    fn deref(&self) -> &Self::Target {
-        &self.comm
-    }
-}
+use crate::universe_guard::UniverseGuard;
 
 fn main() {
-    let universe = UniverseGuard {
-        comm: mpi::initialize().unwrap(),
-    };
+    let universe = UniverseGuard::new(mpi::initialize().unwrap());
+
     let world = universe.world();
     let size = world.size();
     let rank = world.rank();
