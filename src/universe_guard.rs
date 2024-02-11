@@ -1,11 +1,15 @@
-use std::ops::Deref;
+use std::{any::Any, ops::Deref};
 
 use mpi::{
+    datatype::DynBufferMut,
     environment::Universe,
+    point_to_point::Message,
+    topology::SimpleCommunicator,
     traits::{Communicator, Destination},
+    Tag,
 };
 
-use crate::END_TAG;
+use crate::traits::Function;
 
 pub struct UniverseGuard {
     universe: Universe,
@@ -50,3 +54,20 @@ impl Deref for UniverseGuard {
         &self.universe
     }
 }
+
+pub struct End {}
+
+impl Function for End {
+    fn execute(&self, msg: Message, _world: &SimpleCommunicator) -> bool {
+        let mut g: [u8; 0] = [];
+        let mut buf = DynBufferMut::new(&mut g);
+        let _ = msg.matched_receive_into(&mut buf);
+        true
+    }
+
+    fn receive(&self, _msg: Message) -> Box<dyn Any> {
+        Box::new(())
+    }
+}
+
+const END_TAG: Tag = 0;
