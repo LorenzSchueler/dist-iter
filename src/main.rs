@@ -14,7 +14,7 @@ impl Drop for UniverseGuard {
         let world = self.world();
         if world.rank() == 0 {
             let size = world.size();
-            let function = END;
+            let function = END_TAG;
             let data: [u8; 0] = [];
             mpi::request::scope(|scope| {
                 let mut send_requests = vec![];
@@ -52,7 +52,7 @@ fn main() {
     let rank = world.rank();
 
     if rank == 0 {
-        let function = FIBONACCI;
+        let function = FIBONACCI_TAG;
         let data = (30..(30 + size - 1) as u64).into_iter().collect::<Vec<_>>();
         mpi::request::scope(|scope| {
             let mut send_requests = vec![];
@@ -76,7 +76,7 @@ fn main() {
             results[status.source_rank() as usize - 1] = msg;
         }
 
-        let function = SQUARE;
+        let function = SQUARE_TAG;
         let data = (30..(30 + size - 1) as i32).into_iter().collect::<Vec<_>>();
         mpi::request::scope(|scope| {
             let mut send_requests = vec![];
@@ -108,38 +108,71 @@ fn worker(world: &SimpleCommunicator) {
     loop {
         let (msg, status) = world.any_process().matched_probe();
 
-        if dispatch(msg, status.tag(), &world) {
+        let function = FUNCTIONS[status.tag() as usize];
+        let stop = function.execute(msg, world);
+        if stop {
             break;
         }
     }
 }
 
-const END: Tag = 0;
-const FIBONACCI: Tag = 1;
-const SQUARE: Tag = 2;
-fn dispatch(msg: Message, tag: Tag, world: &SimpleCommunicator) -> bool {
-    match tag {
-        END => {
-            let mut g: [u8; 0] = [];
-            let mut buf = DynBufferMut::new(&mut g);
-            let _ = msg.matched_receive_into(&mut buf);
-            true
-        }
-        FIBONACCI => {
-            let (data, _) = msg.matched_receive();
-            let result = fibonacci(data);
-            world.process_at_rank(0).send(&result);
-            false
-        }
-        SQUARE => {
-            let (data, _) = msg.matched_receive();
-            let result = square(data);
-            world.process_at_rank(0).send(&result);
-            false
-        }
-        _ => panic!("unknown function tag {tag:?}"),
+trait Function {
+    fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool;
+
+    fn tag(&self) -> Tag;
+}
+
+struct Fibonacci {}
+
+impl Function for Fibonacci {
+    fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool {
+        let (data, _) = msg.matched_receive();
+        let result = fibonacci(data);
+        world.process_at_rank(0).send(&result);
+        false
+    }
+
+    fn tag(&self) -> Tag {
+        FIBONACCI_TAG
     }
 }
+
+struct Square {}
+
+impl Function for Square {
+    fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool {
+        let (data, _) = msg.matched_receive();
+        let result = square(data);
+        world.process_at_rank(0).send(&result);
+        false
+    }
+
+    fn tag(&self) -> Tag {
+        SQUARE_TAG
+    }
+}
+
+struct End {}
+
+impl Function for End {
+    fn execute(&self, msg: Message, _world: &SimpleCommunicator) -> bool {
+        let mut g: [u8; 0] = [];
+        let mut buf = DynBufferMut::new(&mut g);
+        let _ = msg.matched_receive_into(&mut buf);
+        true
+    }
+    fn tag(&self) -> Tag {
+        END_TAG
+    }
+}
+
+const END: End = End {};
+const END_TAG: Tag = 0;
+const FIBONACCI: Fibonacci = Fibonacci {};
+const FIBONACCI_TAG: Tag = 1;
+const SQUARE: Square = Square {};
+const SQUARE_TAG: Tag = 2;
+const FUNCTIONS: [&dyn Function; 3] = [&END, &FIBONACCI, &SQUARE]; // must be sorted and tags ascending without gaps
 
 fn fibonacci(n: u64) -> u64 {
     if n == 0 {
