@@ -1,5 +1,6 @@
 use mpi::{
-    datatype::DynBufferMut, point_to_point::Message, topology::SimpleCommunicator, traits::*, Tag,
+    datatype::DynBufferMut, point_to_point::Message, topology::SimpleCommunicator, traits::*, Rank,
+    Tag,
 };
 
 mod universe_guard;
@@ -14,56 +15,33 @@ fn main() {
     let rank = world.rank();
 
     if rank == 0 {
-        let function = FIBONACCI_TAG;
-        let data = (30..(30 + size - 1) as u64).into_iter().collect::<Vec<_>>();
-        mpi::request::scope(|scope| {
-            let mut send_requests = vec![];
-            println!("sending first tasks");
-            for dest in 1..size {
-                send_requests.push(world.process_at_rank(dest).immediate_send_with_tag(
-                    scope,
-                    &data[dest as usize - 1],
-                    function,
-                ))
-            }
-            for req in send_requests {
-                req.wait_without_status();
-            }
-            println!("done");
-        });
-        let mut results = vec![0; size as usize - 1];
-        for source in 1..size {
-            let (msg, status) = world
-                .process_at_rank(source)
-                .receive_with_tag::<u64>(FIBONACCI_TAG);
-            println!("root got message {:?} from {}", msg, status.source_rank());
-            results[status.source_rank() as usize - 1] = msg;
+        let work_queue = (100..120)
+            .into_iter()
+            .map(|t| Box::new(SquareTask::new(t)) as Box<dyn Task>)
+            .chain(
+                (0..10)
+                    .into_iter()
+                    .map(|t| Box::new(FibonacciTask::new(t)) as Box<dyn Task>),
+            )
+            .collect::<Vec<_>>();
+        let mut send_idx = 0;
+        let mut recv_idx = 0;
+
+        for dest in 1..size {
+            work_queue[send_idx].send(&world, dest);
+            send_idx += 1;
         }
 
-        let function = SQUARE_TAG;
-        let data = (30..(30 + size - 1) as i32).into_iter().collect::<Vec<_>>();
-        mpi::request::scope(|scope| {
-            let mut send_requests = vec![];
-            println!("sending second tasks");
-            for dest in 1..size {
-                send_requests.push(world.process_at_rank(dest).immediate_send_with_tag(
-                    scope,
-                    &data[dest as usize - 1],
-                    function,
-                ))
+        while recv_idx < work_queue.len() {
+            let (msg, status) = world.any_process().matched_probe();
+
+            FUNCTIONS[status.tag() as usize].receive(msg);
+            recv_idx += 1;
+
+            if send_idx < work_queue.len() {
+                work_queue[send_idx].send(&world, status.source_rank());
+                send_idx += 1;
             }
-            for req in send_requests {
-                req.wait_without_status();
-            }
-            println!("done");
-        });
-        let mut results = vec![0; size as usize - 1];
-        for source in 1..size {
-            let (msg, status) = world
-                .process_at_rank(source)
-                .receive_with_tag::<i32>(SQUARE_TAG);
-            println!("root got message {:?} from {}", msg, status.source_rank());
-            results[status.source_rank() as usize - 1] = msg;
         }
     } else {
         worker(&world);
@@ -85,7 +63,13 @@ fn worker(world: &SimpleCommunicator) {
 trait Function {
     fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool;
 
+    fn receive(&self, msg: Message);
+
     fn tag(&self) -> Tag;
+}
+
+trait Task {
+    fn send(&self, world: &SimpleCommunicator, dest: Rank);
 }
 
 struct Fibonacci {}
@@ -100,8 +84,31 @@ impl Function for Fibonacci {
         false
     }
 
+    fn receive(&self, msg: Message) {
+        let (data, status) = msg.matched_receive::<u64>();
+        println!("root got data {:?} from {}", data, status.source_rank());
+    }
+
     fn tag(&self) -> Tag {
         FIBONACCI_TAG
+    }
+}
+
+struct FibonacciTask {
+    data: u64,
+}
+
+impl FibonacciTask {
+    fn new(data: u64) -> Self {
+        Self { data }
+    }
+}
+
+impl Task for FibonacciTask {
+    fn send(&self, world: &SimpleCommunicator, dest: Rank) {
+        world
+            .process_at_rank(dest)
+            .send_with_tag(&self.data, FIBONACCI_TAG);
     }
 }
 
@@ -117,8 +124,31 @@ impl Function for Square {
         false
     }
 
+    fn receive(&self, msg: Message) {
+        let (data, status) = msg.matched_receive::<i32>();
+        println!("root got data {:?} from {}", data, status.source_rank());
+    }
+
     fn tag(&self) -> Tag {
         SQUARE_TAG
+    }
+}
+
+struct SquareTask {
+    data: i32,
+}
+
+impl SquareTask {
+    fn new(data: i32) -> Self {
+        Self { data }
+    }
+}
+
+impl Task for SquareTask {
+    fn send(&self, world: &SimpleCommunicator, dest: Rank) {
+        world
+            .process_at_rank(dest)
+            .send_with_tag(&self.data, SQUARE_TAG);
     }
 }
 
@@ -131,6 +161,8 @@ impl Function for End {
         let _ = msg.matched_receive_into(&mut buf);
         true
     }
+
+    fn receive(&self, _msg: Message) {}
 
     fn tag(&self) -> Tag {
         END_TAG
