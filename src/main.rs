@@ -33,7 +33,9 @@ fn main() {
         });
         let mut results = vec![0; size as usize - 1];
         for source in 1..size {
-            let (msg, status) = world.process_at_rank(source).receive::<u64>();
+            let (msg, status) = world
+                .process_at_rank(source)
+                .receive_with_tag::<u64>(FIBONACCI_TAG);
             println!("root got message {:?} from {}", msg, status.source_rank());
             results[status.source_rank() as usize - 1] = msg;
         }
@@ -57,7 +59,9 @@ fn main() {
         });
         let mut results = vec![0; size as usize - 1];
         for source in 1..size {
-            let (msg, status) = world.process_at_rank(source).receive::<i32>();
+            let (msg, status) = world
+                .process_at_rank(source)
+                .receive_with_tag::<i32>(SQUARE_TAG);
             println!("root got message {:?} from {}", msg, status.source_rank());
             results[status.source_rank() as usize - 1] = msg;
         }
@@ -88,9 +92,11 @@ struct Fibonacci {}
 
 impl Function for Fibonacci {
     fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool {
-        let (data, _) = msg.matched_receive();
+        let (data, status) = msg.matched_receive();
         let result = fibonacci(data);
-        world.process_at_rank(0).send(&result);
+        world
+            .process_at_rank(0)
+            .send_with_tag(&result, status.tag());
         false
     }
 
@@ -103,9 +109,11 @@ struct Square {}
 
 impl Function for Square {
     fn execute(&self, msg: Message, world: &SimpleCommunicator) -> bool {
-        let (data, _) = msg.matched_receive();
+        let (data, status) = msg.matched_receive();
         let result = square(data);
-        world.process_at_rank(0).send(&result);
+        world
+            .process_at_rank(0)
+            .send_with_tag(&result, status.tag());
         false
     }
 
@@ -123,6 +131,7 @@ impl Function for End {
         let _ = msg.matched_receive_into(&mut buf);
         true
     }
+
     fn tag(&self) -> Tag {
         END_TAG
     }
