@@ -12,7 +12,9 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
         let main_inner = input.block;
         quote!(
             fn main() {
-                let universe = UniverseGuard::new(mpi::initialize().unwrap());
+                use dist_iter::mpi::topology::Communicator;
+
+                let universe = dist_iter::UniverseGuard::new(dist_iter::mpi::initialize().unwrap());
                 let world = universe.world();
 
                 if world.rank() == 0 {
@@ -22,15 +24,17 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            fn master(world: &SimpleCommunicator) {
+            fn master(world: &dist_iter::mpi::topology::SimpleCommunicator) {
                 #main_inner
             }
 
-            fn worker(world: &SimpleCommunicator) {
+            fn worker(world: &dist_iter::mpi::topology::SimpleCommunicator) {
+                use dist_iter::mpi::{topology::Communicator, point_to_point::Source};
+
                 loop {
                     let (msg, status) = world.any_process().matched_probe();
 
-                    let execute = tag_to_execute(status.tag());
+                    let execute = dist_iter::tag_to_execute(status.tag());
                     let stop = execute(msg, world.process_at_rank(0));
                     if stop {
                         break;

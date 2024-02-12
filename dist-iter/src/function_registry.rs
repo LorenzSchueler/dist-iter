@@ -1,5 +1,9 @@
 use linkme::distributed_slice;
-use mpi::{point_to_point::Message, topology::Process, topology::SimpleCommunicator, Tag};
+use mpi::{
+    point_to_point::Message,
+    topology::{Process, SimpleCommunicator},
+    Tag,
+};
 
 #[distributed_slice]
 pub static FUNCTION_REGISTRY: [(

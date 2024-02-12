@@ -23,26 +23,41 @@ pub trait Task {
     }
 }
 
+#[macro_export]
 macro_rules! task {
     ($tag:expr, $in:ty, $out:ty, $closure:expr) => {
         |input: $in| {
-            use mpi::{point_to_point::Message, topology::Process, Tag};
-
             /// used to make sure closure is of type `[fn($in) -> $out]`
             fn function(input: $in) -> $out {
                 $closure(input)
             }
 
-            fn execute(msg: Message, process: Process<'_, SimpleCommunicator>) -> bool {
+            fn execute(
+                msg: dist_iter::mpi::point_to_point::Message,
+                process: dist_iter::mpi::topology::Process<
+                    '_,
+                    dist_iter::mpi::topology::SimpleCommunicator,
+                >,
+            ) -> bool {
+                use dist_iter::mpi::point_to_point::Destination;
+
                 let (data, status) = msg.matched_receive();
                 let result = function(data);
                 process.send_with_tag(&result, status.tag());
                 false
             }
 
-            #[linkme::distributed_slice(crate::function_registry::FUNCTION_REGISTRY)]
-            static REGISTRY_ENTRY: (Tag, fn(Message, Process<'_, SimpleCommunicator>) -> bool) =
-                ($tag, execute); // tag must be generated uniquely
+            #[linkme::distributed_slice(dist_iter::FUNCTION_REGISTRY)]
+            static REGISTRY_ENTRY: (
+                dist_iter::mpi::Tag,
+                fn(
+                    dist_iter::mpi::point_to_point::Message,
+                    dist_iter::mpi::topology::Process<
+                        '_,
+                        dist_iter::mpi::topology::SimpleCommunicator,
+                    >,
+                ) -> bool,
+            ) = ($tag, execute); // tag must be generated uniquely
 
             struct ThisTask {
                 data: $in,
@@ -54,11 +69,11 @@ macro_rules! task {
                 }
             }
 
-            impl crate::task::Task for ThisTask {
+            impl dist_iter::Task for ThisTask {
                 type IN = $in;
                 type OUT = $out;
 
-                const TAG: Tag = $tag;
+                const TAG: dist_iter::mpi::Tag = $tag;
 
                 fn get_data(&self) -> &Self::IN {
                     &self.data
@@ -69,5 +84,3 @@ macro_rules! task {
         }
     };
 }
-
-pub(crate) use task;
