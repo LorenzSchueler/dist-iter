@@ -1,13 +1,27 @@
-use mpi::Tag;
+use std::any::Any;
 
-use crate::{
-    functions::{FIBONACCI, SQUARE},
-    traits::Function,
-    universe_guard::END,
-};
+use linkme::distributed_slice;
+use mpi::{point_to_point::Message, topology::SimpleCommunicator, Tag};
 
-const FUNCTIONS: [&dyn Function; 3] = [&END, &FIBONACCI, &SQUARE]; // must be sorted and tags ascending without gaps
+#[distributed_slice]
+pub static FUNCTIONS: [(
+    Tag,
+    fn(msg: Message, _world: &SimpleCommunicator) -> bool,
+    fn(msg: Message) -> Box<dyn Any>,
+)];
 
-pub fn tag_to_function(tag: Tag) -> &'static dyn Function {
-    FUNCTIONS[tag as usize]
+pub fn tag_to_execute(tag: Tag) -> fn(msg: Message, _world: &SimpleCommunicator) -> bool {
+    FUNCTIONS
+        .iter()
+        .find(|(t, _, _)| *t == tag)
+        .map(|(_, execute, _)| *execute)
+        .unwrap()
+}
+
+pub fn tag_to_receive(tag: Tag) -> fn(msg: Message) -> Box<dyn Any> {
+    FUNCTIONS
+        .iter()
+        .find(|(t, _, _)| *t == tag)
+        .map(|(_, _, receive)| *receive)
+        .unwrap()
 }

@@ -6,7 +6,7 @@ mod traits;
 mod universe_guard;
 
 use crate::{
-    dispatch::tag_to_function,
+    dispatch::{tag_to_execute, tag_to_receive},
     functions::{FibonacciTask, SquareTask},
     traits::Task,
     universe_guard::UniverseGuard,
@@ -45,7 +45,7 @@ fn master(world: &SimpleCommunicator) {
     while recv_queue.len() < total {
         let (msg, status) = world.any_process().matched_probe();
 
-        recv_queue.push(tag_to_function(status.tag()).receive(msg));
+        recv_queue.push(tag_to_receive(status.tag())(msg));
 
         if let Some(task) = work_queue.pop() {
             task.send(&world, status.source_rank());
@@ -57,8 +57,8 @@ fn worker(world: &SimpleCommunicator) {
     loop {
         let (msg, status) = world.any_process().matched_probe();
 
-        let function = tag_to_function(status.tag());
-        let stop = function.execute(msg, world);
+        let function = tag_to_execute(status.tag());
+        let stop = function(msg, world);
         if stop {
             break;
         }

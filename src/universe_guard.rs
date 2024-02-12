@@ -1,5 +1,6 @@
 use std::{any::Any, ops::Deref};
 
+use linkme::distributed_slice;
 use mpi::{
     datatype::DynBufferMut,
     environment::Universe,
@@ -9,7 +10,7 @@ use mpi::{
     Tag,
 };
 
-use crate::traits::Function;
+use crate::dispatch::FUNCTIONS;
 
 pub struct UniverseGuard {
     universe: Universe,
@@ -55,21 +56,22 @@ impl Deref for UniverseGuard {
     }
 }
 
-pub struct End {}
-
-impl Function for End {
-    fn execute(&self, msg: Message, _world: &SimpleCommunicator) -> bool {
-        let mut g: [u8; 0] = [];
-        let mut buf = DynBufferMut::new(&mut g);
-        let _ = msg.matched_receive_into(&mut buf);
-        true
-    }
-
-    fn receive(&self, _msg: Message) -> Box<dyn Any> {
-        Box::new(())
-    }
+fn execute(msg: Message, _world: &SimpleCommunicator) -> bool {
+    let mut g: [u8; 0] = [];
+    let mut buf = DynBufferMut::new(&mut g);
+    let _ = msg.matched_receive_into(&mut buf);
+    true
 }
 
-pub const END: End = End {};
+fn receive(_msg: Message) -> Box<dyn Any> {
+    Box::new(())
+}
+
+#[distributed_slice(FUNCTIONS)]
+pub static END: (
+    Tag,
+    fn(msg: Message, _world: &SimpleCommunicator) -> bool,
+    fn(msg: Message) -> Box<dyn Any>,
+) = (END_TAG, execute, receive);
 
 const END_TAG: Tag = 0;
