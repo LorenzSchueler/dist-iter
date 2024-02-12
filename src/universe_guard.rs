@@ -9,7 +9,7 @@ use mpi::{
     Tag,
 };
 
-use crate::dispatch::FUNCTION_REGISTRY;
+use crate::function_registry::FUNCTION_REGISTRY;
 
 pub struct UniverseGuard {
     universe: Universe,

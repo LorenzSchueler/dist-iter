@@ -1,3 +1,28 @@
+use mpi::{
+    point_to_point::Message,
+    topology::{Process, SimpleCommunicator},
+    traits::{Destination, Equivalence},
+    Tag,
+};
+
+pub trait Task {
+    type IN: Equivalence;
+    type OUT: Equivalence;
+
+    const TAG: Tag;
+
+    fn get_data(&self) -> &Self::IN;
+
+    fn send(&self, process: Process<'_, SimpleCommunicator>) {
+        process.send_with_tag(self.get_data(), Self::TAG);
+    }
+
+    fn receive<T: 'static + Equivalence>(msg: Message) -> T {
+        let (data, _) = msg.matched_receive::<T>();
+        data
+    }
+}
+
 macro_rules! task {
     ($tag:expr, $in:ty, $out:ty, $closure:expr) => {
         |input: $in| {
@@ -15,7 +40,7 @@ macro_rules! task {
                 false
             }
 
-            #[linkme::distributed_slice(crate::dispatch::FUNCTION_REGISTRY)]
+            #[linkme::distributed_slice(crate::function_registry::FUNCTION_REGISTRY)]
             static REGISTRY_ENTRY: (Tag, fn(Message, Process<'_, SimpleCommunicator>) -> bool) =
                 ($tag, execute); // tag must be generated uniquely
 
@@ -29,7 +54,7 @@ macro_rules! task {
                 }
             }
 
-            impl crate::traits::Task for ThisTask {
+            impl crate::task::Task for ThisTask {
                 type IN = $in;
                 type OUT = $out;
 
