@@ -1,14 +1,13 @@
 use mpi::{topology::SimpleCommunicator, traits::*};
 
 mod dispatch;
-mod functions;
+mod macros;
 mod traits;
 mod universe_guard;
 
 use crate::{
     dispatch::{tag_to_execute, tag_to_receive},
-    functions::{FibonacciTask, SquareTask},
-    traits::Task,
+    macros::task,
     universe_guard::UniverseGuard,
 };
 
@@ -24,17 +23,12 @@ fn main() {
 }
 
 fn master(world: &SimpleCommunicator) {
-    let mut work_queue = (100..120)
+    let mut work_queue = (0..10)
         .into_iter()
-        .map(|t| Box::new(SquareTask::new(t)) as Box<dyn Task>)
-        .chain(
-            (0..10)
-                .into_iter()
-                .map(|t| Box::new(FibonacciTask::new(t)) as Box<dyn Task>),
-        );
+        .map(task!(2, i32, i32, |x| x * x))
+        .chain((0..10).into_iter().map(task!(1, u8, u8, |x| x * 2)));
     let mut recv_queue = Vec::new();
     let mut send_count = 0;
-
     for dest in 1..world.size() {
         if let Some(task) = work_queue.next() {
             task.send(world.process_at_rank(dest));

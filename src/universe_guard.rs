@@ -10,7 +10,7 @@ use mpi::{
     Tag,
 };
 
-use crate::{dispatch::FUNCTIONS, traits::receive};
+use crate::{dispatch::FUNCTION_REGISTRY, traits::receive};
 
 pub struct UniverseGuard {
     universe: Universe,
@@ -63,7 +63,7 @@ fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
     true
 }
 
-#[distributed_slice(FUNCTIONS)]
+#[distributed_slice(FUNCTION_REGISTRY)]
 static END: (
     Tag,
     fn(Message, Process<'_, SimpleCommunicator>) -> bool,
