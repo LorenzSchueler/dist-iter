@@ -1,3 +1,4 @@
+workspace = { members = ["dist-iter-macros"] }
 [package]
 name = "dist-iter"
 version = "0.1.0"
@@ -8,3 +9,4 @@ edition = "2021"
 [dependencies]
 linkme = "0.3.22"
 mpi = { version = "0.7.0", features = ["derive", "user-operations"] }
+dist-iter-macros = { path = "./dist-iter-macros" }
