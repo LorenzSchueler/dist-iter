@@ -13,6 +13,18 @@ use crate::{
     traits::{receive, Task},
 };
 
+const FIBONACCI_TAG: Tag = 1;
+
+fn fibonacci(n: u64) -> u64 {
+    if n == 0 {
+        return 0;
+    } else if n == 1 {
+        return 1;
+    } else {
+        return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+}
+
 fn execute(msg: Message, process: Process<'_, SimpleCommunicator>) -> bool {
     let (data, status) = msg.matched_receive();
     let result = fibonacci(data);
@@ -21,7 +33,7 @@ fn execute(msg: Message, process: Process<'_, SimpleCommunicator>) -> bool {
 }
 
 #[distributed_slice(FUNCTIONS)]
-pub static FIBONACCI: (
+static FIBONACCI: (
     Tag,
     fn(Message, Process<'_, SimpleCommunicator>) -> bool,
     fn(Message) -> Box<dyn Any>,
@@ -40,17 +52,5 @@ impl FibonacciTask {
 impl Task for FibonacciTask {
     fn send(&self, process: Process<'_, SimpleCommunicator>) {
         process.send_with_tag(&self.data, FIBONACCI_TAG);
-    }
-}
-
-const FIBONACCI_TAG: Tag = 1;
-
-fn fibonacci(n: u64) -> u64 {
-    if n == 0 {
-        return 0;
-    } else if n == 1 {
-        return 1;
-    } else {
-        return fibonacci(n - 1) + fibonacci(n - 2);
     }
 }

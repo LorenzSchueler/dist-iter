@@ -45,7 +45,8 @@ fn master(world: &SimpleCommunicator) {
     while recv_queue.len() < total {
         let (msg, status) = world.any_process().matched_probe();
 
-        recv_queue.push(tag_to_receive(status.tag())(msg));
+        let receive = tag_to_receive(status.tag());
+        recv_queue.push(receive(msg));
 
         if let Some(task) = work_queue.pop() {
             task.send(world.process_at_rank(status.source_rank()));
@@ -57,8 +58,8 @@ fn worker(world: &SimpleCommunicator) {
     loop {
         let (msg, status) = world.any_process().matched_probe();
 
-        let function = tag_to_execute(status.tag());
-        let stop = function(msg, world.process_at_rank(0));
+        let execute = tag_to_execute(status.tag());
+        let stop = execute(msg, world.process_at_rank(0));
         if stop {
             break;
         }

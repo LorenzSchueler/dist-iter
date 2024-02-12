@@ -64,7 +64,7 @@ fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
 }
 
 #[distributed_slice(FUNCTIONS)]
-pub static END: (
+static END: (
     Tag,
     fn(Message, Process<'_, SimpleCommunicator>) -> bool,
     fn(Message) -> Box<dyn Any>,

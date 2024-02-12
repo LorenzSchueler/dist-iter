@@ -4,9 +4,6 @@ use linkme::distributed_slice;
 use mpi::{point_to_point::Message, topology::Process, topology::SimpleCommunicator, Tag};
 
 #[distributed_slice]
-pub static TAGS: [Tag];
-
-#[distributed_slice]
 pub static FUNCTIONS: [(
     Tag,
     fn(Message, mpi::topology::Process<'_, SimpleCommunicator>) -> bool,
