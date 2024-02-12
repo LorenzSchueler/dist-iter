@@ -31,25 +31,26 @@ fn master(world: &SimpleCommunicator) {
             (0..10)
                 .into_iter()
                 .map(|t| Box::new(FibonacciTask::new(t)) as Box<dyn Task>),
-        )
-        .collect::<Vec<_>>();
+        );
     let mut recv_queue = Vec::new();
-    let total = work_queue.len();
+    let mut send_count = 0;
 
     for dest in 1..world.size() {
-        if let Some(task) = work_queue.pop() {
+        if let Some(task) = work_queue.next() {
             task.send(world.process_at_rank(dest));
+            send_count += 1;
         }
     }
 
-    while recv_queue.len() < total {
+    while recv_queue.len() < send_count {
         let (msg, status) = world.any_process().matched_probe();
 
         let receive = tag_to_receive(status.tag());
         recv_queue.push(receive(msg));
 
-        if let Some(task) = work_queue.pop() {
+        if let Some(task) = work_queue.next() {
             task.send(world.process_at_rank(status.source_rank()));
+            send_count += 1;
         }
     }
 }
