@@ -1,10 +1,14 @@
 use std::any::Any;
 use std::fmt::Debug;
 
-use mpi::{point_to_point::Message, topology::SimpleCommunicator, traits::Equivalence, Rank};
+use mpi::{
+    point_to_point::Message,
+    topology::{Process, SimpleCommunicator},
+    traits::Equivalence,
+};
 
 pub trait Task {
-    fn send(&self, world: &SimpleCommunicator, dest: Rank);
+    fn send(&self, process: Process<'_, SimpleCommunicator>);
 }
 
 pub fn receive<T: 'static + Equivalence + Debug>(msg: Message) -> Box<dyn Any> {

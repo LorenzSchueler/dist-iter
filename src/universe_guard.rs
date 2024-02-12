@@ -5,7 +5,7 @@ use mpi::{
     datatype::DynBufferMut,
     environment::Universe,
     point_to_point::Message,
-    topology::SimpleCommunicator,
+    topology::{Process, SimpleCommunicator},
     traits::{Communicator, Destination},
     Tag,
 };
@@ -56,7 +56,7 @@ impl Deref for UniverseGuard {
     }
 }
 
-fn execute(msg: Message, _world: &SimpleCommunicator) -> bool {
+fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
     let mut g: [u8; 0] = [];
     let mut buf = DynBufferMut::new(&mut g);
     let _ = msg.matched_receive_into(&mut buf);
@@ -66,8 +66,8 @@ fn execute(msg: Message, _world: &SimpleCommunicator) -> bool {
 #[distributed_slice(FUNCTIONS)]
 pub static END: (
     Tag,
-    fn(msg: Message, _world: &SimpleCommunicator) -> bool,
-    fn(msg: Message) -> Box<dyn Any>,
+    fn(Message, Process<'_, SimpleCommunicator>) -> bool,
+    fn(Message) -> Box<dyn Any>,
 ) = (END_TAG, execute, receive::<u8>);
 
 const END_TAG: Tag = 0;

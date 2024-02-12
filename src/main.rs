@@ -38,7 +38,7 @@ fn master(world: &SimpleCommunicator) {
 
     for dest in 1..world.size() {
         if let Some(task) = work_queue.pop() {
-            task.send(&world, dest);
+            task.send(world.process_at_rank(dest));
         }
     }
 
@@ -48,7 +48,7 @@ fn master(world: &SimpleCommunicator) {
         recv_queue.push(tag_to_receive(status.tag())(msg));
 
         if let Some(task) = work_queue.pop() {
-            task.send(&world, status.source_rank());
+            task.send(world.process_at_rank(status.source_rank()));
         }
     }
 }
@@ -58,7 +58,7 @@ fn worker(world: &SimpleCommunicator) {
         let (msg, status) = world.any_process().matched_probe();
 
         let function = tag_to_execute(status.tag());
-        let stop = function(msg, world);
+        let stop = function(msg, world.process_at_rank(0));
         if stop {
             break;
         }

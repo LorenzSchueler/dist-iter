@@ -3,9 +3,9 @@ use std::any::Any;
 use linkme::distributed_slice;
 use mpi::{
     point_to_point::Message,
-    topology::SimpleCommunicator,
-    traits::{Communicator, Destination},
-    Rank, Tag,
+    topology::{Process, SimpleCommunicator},
+    traits::Destination,
+    Tag,
 };
 
 use crate::{
@@ -13,20 +13,18 @@ use crate::{
     traits::{receive, Task},
 };
 
-fn execute(msg: Message, world: &SimpleCommunicator) -> bool {
+fn execute(msg: Message, process: Process<'_, SimpleCommunicator>) -> bool {
     let (data, status) = msg.matched_receive();
     let result = fibonacci(data);
-    world
-        .process_at_rank(0)
-        .send_with_tag(&result, status.tag());
+    process.send_with_tag(&result, status.tag());
     false
 }
 
 #[distributed_slice(FUNCTIONS)]
 pub static FIBONACCI: (
     Tag,
-    fn(msg: Message, _world: &SimpleCommunicator) -> bool,
-    fn(msg: Message) -> Box<dyn Any>,
+    fn(Message, Process<'_, SimpleCommunicator>) -> bool,
+    fn(Message) -> Box<dyn Any>,
 ) = (FIBONACCI_TAG, execute, receive::<u64>);
 
 pub struct FibonacciTask {
@@ -40,10 +38,8 @@ impl FibonacciTask {
 }
 
 impl Task for FibonacciTask {
-    fn send(&self, world: &SimpleCommunicator, dest: Rank) {
-        world
-            .process_at_rank(dest)
-            .send_with_tag(&self.data, FIBONACCI_TAG);
+    fn send(&self, process: Process<'_, SimpleCommunicator>) {
+        process.send_with_tag(&self.data, FIBONACCI_TAG);
     }
 }
 

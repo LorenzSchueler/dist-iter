@@ -3,9 +3,9 @@ use std::any::Any;
 use linkme::distributed_slice;
 use mpi::{
     point_to_point::Message,
-    topology::SimpleCommunicator,
-    traits::{Communicator, Destination},
-    Rank, Tag,
+    topology::{Process, SimpleCommunicator},
+    traits::Destination,
+    Tag,
 };
 
 use crate::{
@@ -13,20 +13,18 @@ use crate::{
     traits::{receive, Task},
 };
 
-fn execute(msg: Message, world: &SimpleCommunicator) -> bool {
+fn execute(msg: Message, process: Process<'_, SimpleCommunicator>) -> bool {
     let (data, status) = msg.matched_receive();
     let result = square(data);
-    world
-        .process_at_rank(0)
-        .send_with_tag(&result, status.tag());
+    process.send_with_tag(&result, status.tag());
     false
 }
 
 #[distributed_slice(FUNCTIONS)]
 pub static SQUARE: (
     Tag,
-    fn(msg: Message, _world: &SimpleCommunicator) -> bool,
-    fn(msg: Message) -> Box<dyn Any>,
+    fn(Message, Process<'_, SimpleCommunicator>) -> bool,
+    fn(Message) -> Box<dyn Any>,
 ) = (SQUARE_TAG, execute, receive::<i32>);
 
 pub struct SquareTask {
@@ -40,10 +38,8 @@ impl SquareTask {
 }
 
 impl Task for SquareTask {
-    fn send(&self, world: &SimpleCommunicator, dest: Rank) {
-        world
-            .process_at_rank(dest)
-            .send_with_tag(&self.data, SQUARE_TAG);
+    fn send(&self, process: Process<'_, SimpleCommunicator>) {
+        process.send_with_tag(&self.data, SQUARE_TAG);
     }
 }
 
