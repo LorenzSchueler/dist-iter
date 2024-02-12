@@ -38,7 +38,7 @@ macro_rules! task {
                 }
             }
 
-            Box::new(ThisTask::new(input)) as Box<dyn crate::traits::Task>
+            ThisTask::new(input)
         }
     };
 }

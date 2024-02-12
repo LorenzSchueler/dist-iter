@@ -23,7 +23,11 @@ fn main() {
     }
 }
 
-struct DistIter<'w, I: Iterator<Item = Box<dyn Task>>> {
+struct DistIter<'w, I>
+where
+    I: Iterator,
+    I::Item: Task,
+{
     inner: I,
     init: bool,
     send_count: usize,
@@ -31,7 +35,11 @@ struct DistIter<'w, I: Iterator<Item = Box<dyn Task>>> {
     world: &'w SimpleCommunicator,
 }
 
-impl<'w, I: Iterator<Item = Box<dyn Task>>> Iterator for DistIter<'w, I> {
+impl<'w, I> Iterator for DistIter<'w, I>
+where
+    I: Iterator,
+    I::Item: Task,
+{
     type Item = Box<dyn std::any::Any>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -64,10 +72,15 @@ impl<'w, I: Iterator<Item = Box<dyn Task>>> Iterator for DistIter<'w, I> {
 trait MyIterExt {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self>
     where
-        Self: Iterator<Item = Box<dyn Task>> + Sized;
+        Self: Iterator + Sized,
+        Self::Item: Task;
 }
 
-impl<I: Iterator<Item = Box<dyn Task>>> MyIterExt for I {
+impl<I> MyIterExt for I
+where
+    I: Iterator,
+    I::Item: Task,
+{
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self> {
         DistIter {
             inner: self,
@@ -83,7 +96,11 @@ fn master(world: &SimpleCommunicator) {
     (0..10)
         .into_iter()
         .map(task!(2, i32, i32, |x| x * x))
-        .chain((0..10).into_iter().map(task!(1, u8, u8, |x| x * 2)))
+        .into_dist_iter(world)
+        .for_each(|_| println!("x"));
+    (0..10)
+        .into_iter()
+        .map(task!(1, u8, u8, |x| x * 2))
         .into_dist_iter(world)
         .for_each(|_| println!("x"));
 }
