@@ -16,11 +16,8 @@ macro_rules! task {
             }
 
             #[linkme::distributed_slice(crate::dispatch::FUNCTION_REGISTRY)]
-            static REGISTRY_ENTRY: (
-                Tag,
-                fn(Message, Process<'_, SimpleCommunicator>) -> bool,
-                fn(Message) -> Box<dyn std::any::Any>,
-            ) = ($tag, execute, crate::traits::receive::<$out>); // tag must be generated uniquely
+            static REGISTRY_ENTRY: (Tag, fn(Message, Process<'_, SimpleCommunicator>) -> bool) =
+                ($tag, execute); // tag must be generated uniquely
 
             struct ThisTask {
                 data: $in,
@@ -33,6 +30,11 @@ macro_rules! task {
             }
 
             impl crate::traits::Task for ThisTask {
+                type IN = $in;
+                type OUT = $out;
+
+                const TAG: Tag = $tag;
+
                 fn send(&self, process: Process<'_, SimpleCommunicator>) {
                     process.send_with_tag(&self.data, REGISTRY_ENTRY.0);
                 }

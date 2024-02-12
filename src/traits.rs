@@ -1,18 +1,20 @@
-use std::any::Any;
-use std::fmt::Debug;
-
 use mpi::{
     point_to_point::Message,
     topology::{Process, SimpleCommunicator},
     traits::Equivalence,
+    Tag,
 };
 
 pub trait Task {
-    fn send(&self, process: Process<'_, SimpleCommunicator>);
-}
+    type IN;
+    type OUT: Equivalence;
 
-pub fn receive<T: 'static + Equivalence + Debug>(msg: Message) -> Box<dyn Any> {
-    let (data, status) = msg.matched_receive::<T>();
-    println!("root got data {:?} from {}", data, status.source_rank());
-    Box::new(data)
+    const TAG: Tag;
+
+    fn send(&self, process: Process<'_, SimpleCommunicator>);
+
+    fn receive<T: 'static + Equivalence>(msg: Message) -> T {
+        let (data, _) = msg.matched_receive::<T>();
+        data
+    }
 }

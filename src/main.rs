@@ -5,12 +5,7 @@ mod macros;
 mod traits;
 mod universe_guard;
 
-use crate::{
-    dispatch::{tag_to_execute, tag_to_receive},
-    macros::task,
-    traits::Task,
-    universe_guard::UniverseGuard,
-};
+use crate::{dispatch::tag_to_execute, macros::task, traits::Task, universe_guard::UniverseGuard};
 
 fn main() {
     let universe = UniverseGuard::new(mpi::initialize().unwrap());
@@ -27,6 +22,7 @@ struct DistIter<'w, I>
 where
     I: Iterator,
     I::Item: Task,
+    <I::Item as Task>::OUT: Equivalence,
 {
     inner: I,
     init: bool,
@@ -39,8 +35,9 @@ impl<'w, I> Iterator for DistIter<'w, I>
 where
     I: Iterator,
     I::Item: Task,
+    <I::Item as Task>::OUT: Equivalence,
 {
-    type Item = Box<dyn std::any::Any>;
+    type Item = <I::Item as Task>::OUT;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.init {
@@ -52,17 +49,15 @@ where
             }
         }
         if self.recv_count < self.send_count {
-            let (msg, status) = self.world.any_process().matched_probe();
-
-            let receive = tag_to_receive(status.tag());
-            let result = receive(msg);
+            let tag = <I::Item as Task>::TAG;
+            let (data, status) = self.world.any_process().receive_with_tag(tag);
             self.recv_count += 1;
 
             if let Some(task) = self.inner.next() {
                 task.send(self.world.process_at_rank(status.source_rank()));
                 self.send_count += 1;
             }
-            Some(result)
+            Some(data)
         } else {
             None
         }
@@ -73,13 +68,15 @@ trait MyIterExt {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self>
     where
         Self: Iterator + Sized,
-        Self::Item: Task;
+        Self::Item: Task,
+        <Self::Item as Task>::OUT: Equivalence;
 }
 
 impl<I> MyIterExt for I
 where
     I: Iterator,
     I::Item: Task,
+    <I::Item as Task>::OUT: Equivalence,
 {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self> {
         DistIter {
@@ -97,12 +94,12 @@ fn master(world: &SimpleCommunicator) {
         .into_iter()
         .map(task!(2, i32, i32, |x| x * x))
         .into_dist_iter(world)
-        .for_each(|_| println!("x"));
+        .for_each(|v| println!("{v}"));
     (0..10)
         .into_iter()
         .map(task!(1, u8, u8, |x| x * 2))
         .into_dist_iter(world)
-        .for_each(|_| println!("x"));
+        .for_each(|v| println!("{v}"));
 }
 
 fn worker(world: &SimpleCommunicator) {

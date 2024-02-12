@@ -1,4 +1,4 @@
-use std::{any::Any, ops::Deref};
+use std::ops::Deref;
 
 use linkme::distributed_slice;
 use mpi::{
@@ -10,7 +10,7 @@ use mpi::{
     Tag,
 };
 
-use crate::{dispatch::FUNCTION_REGISTRY, traits::receive};
+use crate::dispatch::FUNCTION_REGISTRY;
 
 pub struct UniverseGuard {
     universe: Universe,
@@ -64,10 +64,6 @@ fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
 }
 
 #[distributed_slice(FUNCTION_REGISTRY)]
-static END: (
-    Tag,
-    fn(Message, Process<'_, SimpleCommunicator>) -> bool,
-    fn(Message) -> Box<dyn Any>,
-) = (END_TAG, execute, receive::<u8>);
+static END: (Tag, fn(Message, Process<'_, SimpleCommunicator>) -> bool) = (END_TAG, execute);
 
 const END_TAG: Tag = 0;
