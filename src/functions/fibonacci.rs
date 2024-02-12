@@ -8,7 +8,10 @@ use mpi::{
     Rank, Tag,
 };
 
-use crate::{dispatch::FUNCTIONS, traits::Task};
+use crate::{
+    dispatch::FUNCTIONS,
+    traits::{receive, Task},
+};
 
 fn execute(msg: Message, world: &SimpleCommunicator) -> bool {
     let (data, status) = msg.matched_receive();
@@ -19,18 +22,12 @@ fn execute(msg: Message, world: &SimpleCommunicator) -> bool {
     false
 }
 
-fn receive(msg: Message) -> Box<dyn Any> {
-    let (data, status) = msg.matched_receive::<u64>();
-    println!("root got data {:?} from {}", data, status.source_rank());
-    Box::new(data)
-}
-
 #[distributed_slice(FUNCTIONS)]
 pub static FIBONACCI: (
     Tag,
     fn(msg: Message, _world: &SimpleCommunicator) -> bool,
     fn(msg: Message) -> Box<dyn Any>,
-) = (FIBONACCI_TAG, execute, receive);
+) = (FIBONACCI_TAG, execute, receive::<u64>);
 
 pub struct FibonacciTask {
     data: u64,

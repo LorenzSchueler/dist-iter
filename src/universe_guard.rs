@@ -10,7 +10,7 @@ use mpi::{
     Tag,
 };
 
-use crate::dispatch::FUNCTIONS;
+use crate::{dispatch::FUNCTIONS, traits::receive};
 
 pub struct UniverseGuard {
     universe: Universe,
@@ -63,15 +63,11 @@ fn execute(msg: Message, _world: &SimpleCommunicator) -> bool {
     true
 }
 
-fn receive(_msg: Message) -> Box<dyn Any> {
-    Box::new(())
-}
-
 #[distributed_slice(FUNCTIONS)]
 pub static END: (
     Tag,
     fn(msg: Message, _world: &SimpleCommunicator) -> bool,
     fn(msg: Message) -> Box<dyn Any>,
-) = (END_TAG, execute, receive);
+) = (END_TAG, execute, receive::<u8>);
 
 const END_TAG: Tag = 0;
