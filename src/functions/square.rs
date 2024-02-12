@@ -46,6 +46,8 @@ impl Task for SquareTask {
     }
 }
 
+pub const SQUARE: Square = Square {};
+
 const SQUARE_TAG: Tag = 2;
 
 fn square(n: i32) -> i32 {

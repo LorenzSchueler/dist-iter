@@ -1,14 +1,11 @@
 use mpi::Tag;
 
 use crate::{
-    functions::{Fibonacci, Square},
+    functions::{FIBONACCI, SQUARE},
     traits::Function,
-    universe_guard::End,
+    universe_guard::END,
 };
 
-const END: End = End {};
-const FIBONACCI: Fibonacci = Fibonacci {};
-const SQUARE: Square = Square {};
 const FUNCTIONS: [&dyn Function; 3] = [&END, &FIBONACCI, &SQUARE]; // must be sorted and tags ascending without gaps
 
 pub fn tag_to_function(tag: Tag) -> &'static dyn Function {

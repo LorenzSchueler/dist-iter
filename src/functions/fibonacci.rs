@@ -46,6 +46,8 @@ impl Task for FibonacciTask {
     }
 }
 
+pub const FIBONACCI: Fibonacci = Fibonacci {};
+
 const FIBONACCI_TAG: Tag = 1;
 
 fn fibonacci(n: u64) -> u64 {

@@ -70,4 +70,6 @@ impl Function for End {
     }
 }
 
+pub const END: End = End {};
+
 const END_TAG: Tag = 0;
