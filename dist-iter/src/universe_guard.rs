@@ -9,8 +9,9 @@ use mpi::{
     Tag,
 };
 
-use crate::function_registry::FUNCTION_REGISTRY;
+use crate::function_registry::{RegistryEntry, FUNCTION_REGISTRY};
 
+#[doc(hidden)]
 pub struct UniverseGuard {
     universe: Universe,
 }
@@ -46,6 +47,6 @@ fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
 }
 
 #[distributed_slice(FUNCTION_REGISTRY)]
-static END: (Tag, fn(Message, Process<'_, SimpleCommunicator>) -> bool) = (END_TAG, execute);
+static END: RegistryEntry = (END_TAG, execute);
 
 const END_TAG: Tag = 0;

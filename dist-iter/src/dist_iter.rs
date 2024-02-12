@@ -49,14 +49,14 @@ where
     }
 }
 
-pub trait MyIterExt {
+pub trait IntoDistIter {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self>
     where
         Self: Iterator + Sized,
         Self::Item: Task;
 }
 
-impl<I> MyIterExt for I
+impl<I> IntoDistIter for I
 where
     I: Iterator,
     I::Item: Task,

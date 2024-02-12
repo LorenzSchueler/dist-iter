@@ -5,6 +5,7 @@ use mpi::{
     Tag,
 };
 
+#[doc(hidden)]
 pub trait Task {
     type IN: Equivalence;
     type OUT: Equivalence;
@@ -33,13 +34,13 @@ macro_rules! task {
             }
 
             fn execute(
-                msg: dist_iter::mpi::point_to_point::Message,
-                process: dist_iter::mpi::topology::Process<
+                msg: ::dist_iter::mpi::point_to_point::Message,
+                process: ::dist_iter::mpi::topology::Process<
                     '_,
-                    dist_iter::mpi::topology::SimpleCommunicator,
+                    ::dist_iter::mpi::topology::SimpleCommunicator,
                 >,
             ) -> bool {
-                use dist_iter::mpi::point_to_point::Destination;
+                use ::dist_iter::mpi::point_to_point::Destination;
 
                 let (data, status) = msg.matched_receive();
                 let result = function(data);
@@ -47,17 +48,8 @@ macro_rules! task {
                 false
             }
 
-            #[linkme::distributed_slice(dist_iter::FUNCTION_REGISTRY)]
-            static REGISTRY_ENTRY: (
-                dist_iter::mpi::Tag,
-                fn(
-                    dist_iter::mpi::point_to_point::Message,
-                    dist_iter::mpi::topology::Process<
-                        '_,
-                        dist_iter::mpi::topology::SimpleCommunicator,
-                    >,
-                ) -> bool,
-            ) = ($tag, execute); // tag must be generated uniquely
+            #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
+            static REGISTRY_ENTRY: ::dist_iter::RegistryEntry = ($tag, execute); // tag must be generated uniquely
 
             struct ThisTask {
                 data: $in,
@@ -69,11 +61,11 @@ macro_rules! task {
                 }
             }
 
-            impl dist_iter::Task for ThisTask {
+            impl ::dist_iter::Task for ThisTask {
                 type IN = $in;
                 type OUT = $out;
 
-                const TAG: dist_iter::mpi::Tag = $tag;
+                const TAG: ::dist_iter::mpi::Tag = $tag;
 
                 fn get_data(&self) -> &Self::IN {
                     &self.data

@@ -1,4 +1,4 @@
-use dist_iter::{task, MyIterExt};
+use dist_iter::{task, IntoDistIter};
 
 #[dist_iter::main]
 fn main() {

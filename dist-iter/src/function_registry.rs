@@ -5,12 +5,17 @@ use mpi::{
     Tag,
 };
 
-#[distributed_slice]
-pub static FUNCTION_REGISTRY: [(
+#[doc(hidden)]
+pub type RegistryEntry = (
     Tag,
     fn(Message, mpi::topology::Process<'_, SimpleCommunicator>) -> bool,
-)];
+);
 
+#[doc(hidden)]
+#[distributed_slice]
+pub static FUNCTION_REGISTRY: [RegistryEntry];
+
+#[doc(hidden)]
 pub fn tag_to_execute(tag: Tag) -> fn(Message, Process<'_, SimpleCommunicator>) -> bool {
     FUNCTION_REGISTRY
         .iter()
