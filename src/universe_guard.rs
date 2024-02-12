@@ -2,7 +2,6 @@ use std::ops::Deref;
 
 use linkme::distributed_slice;
 use mpi::{
-    datatype::DynBufferMut,
     environment::Universe,
     point_to_point::Message,
     topology::{Process, SimpleCommunicator},
@@ -26,24 +25,9 @@ impl Drop for UniverseGuard {
     fn drop(&mut self) {
         let world = self.world();
         if world.rank() == 0 {
-            let size = world.size();
-            let function = END_TAG;
-            let data: [u8; 0] = [];
-            mpi::request::scope(|scope| {
-                let mut send_requests = vec![];
-                println!("sending end");
-                for dest in 1..size {
-                    send_requests.push(
-                        world
-                            .process_at_rank(dest)
-                            .immediate_send_with_tag(scope, &data, function),
-                    );
-                }
-                for req in send_requests {
-                    req.wait_without_status();
-                }
-                println!("done");
-            });
+            for dest in 1..world.size() {
+                world.process_at_rank(dest).send_with_tag(&0u8, END_TAG);
+            }
         }
     }
 }
@@ -57,9 +41,7 @@ impl Deref for UniverseGuard {
 }
 
 fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
-    let mut g: [u8; 0] = [];
-    let mut buf = DynBufferMut::new(&mut g);
-    let _ = msg.matched_receive_into(&mut buf);
+    msg.matched_receive::<u8>();
     true
 }
 
