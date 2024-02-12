@@ -35,8 +35,8 @@ macro_rules! task {
 
                 const TAG: Tag = $tag;
 
-                fn send(&self, process: Process<'_, SimpleCommunicator>) {
-                    process.send_with_tag(&self.data, REGISTRY_ENTRY.0);
+                fn get_data(&self) -> &Self::IN {
+                    &self.data
                 }
             }
 

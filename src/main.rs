@@ -22,7 +22,6 @@ struct DistIter<'w, I>
 where
     I: Iterator,
     I::Item: Task,
-    <I::Item as Task>::OUT: Equivalence,
 {
     inner: I,
     init: bool,
@@ -35,7 +34,6 @@ impl<'w, I> Iterator for DistIter<'w, I>
 where
     I: Iterator,
     I::Item: Task,
-    <I::Item as Task>::OUT: Equivalence,
 {
     type Item = <I::Item as Task>::OUT;
 
@@ -68,15 +66,13 @@ trait MyIterExt {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self>
     where
         Self: Iterator + Sized,
-        Self::Item: Task,
-        <Self::Item as Task>::OUT: Equivalence;
+        Self::Item: Task;
 }
 
 impl<I> MyIterExt for I
 where
     I: Iterator,
     I::Item: Task,
-    <I::Item as Task>::OUT: Equivalence,
 {
     fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self> {
         DistIter {
