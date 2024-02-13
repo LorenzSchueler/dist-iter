@@ -5,7 +5,7 @@ use mpi::{
 
 use crate::task::Task;
 
-pub struct DistIter<'w, I>
+pub struct DistIter<I>
 where
     I: Iterator,
     I::Item: Task,
@@ -14,10 +14,10 @@ where
     init: bool,
     send_count: usize,
     recv_count: usize,
-    world: &'w SimpleCommunicator,
+    world: SimpleCommunicator,
 }
 
-impl<'w, I> Iterator for DistIter<'w, I>
+impl<I> Iterator for DistIter<I>
 where
     I: Iterator,
     I::Item: Task,
@@ -50,7 +50,7 @@ where
 }
 
 pub trait IntoDistIter {
-    fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self>
+    fn into_dist_iter(self) -> DistIter<Self>
     where
         Self: Iterator + Sized,
         Self::Item: Task;
@@ -61,13 +61,13 @@ where
     I: Iterator,
     I::Item: Task,
 {
-    fn into_dist_iter(self, world: &SimpleCommunicator) -> DistIter<Self> {
+    fn into_dist_iter(self) -> DistIter<Self> {
         DistIter {
             inner: self,
             init: false,
             send_count: 0,
             recv_count: 0,
-            world,
+            world: SimpleCommunicator::world(),
         }
     }
 }

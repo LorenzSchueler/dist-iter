@@ -13,28 +13,28 @@ use mpi::{
     traits::{Communicator, Source},
 };
 
-#[doc(hidden)]
-pub use crate::task::Task;
+pub use crate::dist_iter::IntoDistIter;
 use crate::universe_guard::UniverseGuard;
+#[doc(hidden)]
 pub use crate::{
-    dist_iter::IntoDistIter,
     function_registry::{RegistryEntry, FUNCTION_REGISTRY},
+    task::Task,
 };
 
-pub fn main(master: fn(&SimpleCommunicator)) {
+pub fn main(master: fn()) {
     function_registry::check_registry();
 
     let universe = UniverseGuard::new(mpi::initialize().unwrap());
-    let world = universe.world();
 
-    if world.rank() == 0 {
-        master(&world);
+    if universe.world().rank() == 0 {
+        master();
     } else {
-        worker(&world);
+        worker();
     }
 }
 
-fn worker(world: &SimpleCommunicator) {
+fn worker() {
+    let world = SimpleCommunicator::world();
     loop {
         let (msg, status) = world.any_process().matched_probe();
 

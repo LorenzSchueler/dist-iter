@@ -15,7 +15,7 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
                 ::dist_iter::main(master)
             }
 
-            fn master(world: &::dist_iter::mpi::topology::SimpleCommunicator) {
+            fn master() {
                 #main_inner
             }
         )
