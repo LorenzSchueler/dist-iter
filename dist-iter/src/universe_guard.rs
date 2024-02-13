@@ -12,7 +12,7 @@ use mpi::{
 use crate::function_registry::{RegistryEntry, FUNCTION_REGISTRY};
 
 #[doc(hidden)]
-pub struct UniverseGuard {
+pub(crate) struct UniverseGuard {
     universe: Universe,
 }
 

@@ -23,3 +23,19 @@ pub fn tag_to_execute(tag: Tag) -> fn(Message, Process<'_, SimpleCommunicator>) 
         .map(|(_, execute)| *execute)
         .unwrap()
 }
+
+pub(crate) fn check_registry() {
+    let mut sorted_tags = FUNCTION_REGISTRY
+        .iter()
+        .map(|(tag, _)| *tag)
+        .collect::<Vec<_>>();
+    sorted_tags.sort();
+    for i in 0..(sorted_tags.len() - 1) {
+        if sorted_tags[i] == sorted_tags[i + 1] {
+            panic!(
+                "tags are not unique: tag {} exists at least twice",
+                sorted_tags[i]
+            );
+        }
+    }
+}
