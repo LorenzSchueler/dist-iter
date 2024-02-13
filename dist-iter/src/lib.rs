@@ -17,7 +17,7 @@ pub use crate::dist_iter::IntoDistIter;
 use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
 pub use crate::{
-    function_registry::{RegistryEntry, FUNCTION_REGISTRY},
+    function_registry::{gen_tag, RegistryEntry, FUNCTION_REGISTRY},
     task::Task,
 };
 

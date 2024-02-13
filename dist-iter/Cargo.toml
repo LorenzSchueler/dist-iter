@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+const-sha1 = "0.3.0"
 linkme = "0.3.22"
 mpi = { version = "0.7.0", features = ["derive", "user-operations"] }
 dist-iter-macros = { path = "../dist-iter-macros" }

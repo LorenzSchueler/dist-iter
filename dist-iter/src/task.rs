@@ -27,7 +27,7 @@ pub trait Task {
 #[macro_export]
 macro_rules! task {
     ($in:ty, $out:ty, $closure:expr) => {
-        |input: $in| {
+        |data: $in| {
             // make sure closure is of type `[fn($in) -> $out]`
             fn function(input: $in) -> $out {
                 $closure(input)
@@ -53,48 +53,22 @@ macro_rules! task {
                 (<ThisTask as ::dist_iter::Task>::TAG, execute);
 
             struct ThisTask {
-                data: $in,
+                pub data: $in,
             }
-
-            impl ThisTask {
-                pub fn new(data: $in) -> Self {
-                    Self { data }
-                }
-            }
-
-            // try to generate unique tag
-            // uniqueness is not guaranteed at compile time but check at runtime
-            const FILE_HASH: [u8; 20] = const_sha1::sha1(file!().as_bytes()).as_bytes();
-            const TAG: u32 = ((line!() * 2_u32.pow(16)) + column!())
-                ^ (((FILE_HASH[0] as u32) << 24)
-                    + ((FILE_HASH[1] as u32) << 16)
-                    + ((FILE_HASH[2] as u32) << 8)
-                    + ((FILE_HASH[3] as u32) << 0))
-                ^ (((FILE_HASH[4] as u32) << 24)
-                    + ((FILE_HASH[5] as u32) << 16)
-                    + ((FILE_HASH[6] as u32) << 8)
-                    + ((FILE_HASH[7] as u32) << 0))
-                ^ (((FILE_HASH[8] as u32) << 24)
-                    + ((FILE_HASH[9] as u32) << 16)
-                    + ((FILE_HASH[10] as u32) << 8)
-                    + ((FILE_HASH[11] as u32) << 0))
-                ^ (((FILE_HASH[12] as u32) << 24)
-                    + ((FILE_HASH[13] as u32) << 16)
-                    + ((FILE_HASH[14] as u32) << 8)
-                    + ((FILE_HASH[15] as u32) << 0));
 
             impl ::dist_iter::Task for ThisTask {
                 type IN = $in;
                 type OUT = $out;
 
-                const TAG: ::dist_iter::mpi::Tag = (TAG as i32).abs();
+                const TAG: ::dist_iter::mpi::Tag =
+                    ::dist_iter::gen_tag(file!(), line!(), column!());
 
                 fn get_data(&self) -> &Self::IN {
                     &self.data
                 }
             }
 
-            ThisTask::new(input)
+            ThisTask { data }
         }
     };
 }
