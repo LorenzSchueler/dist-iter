@@ -8,5 +8,6 @@ fn main() {
         .collect();
     results.sort();
 
+    eprintln!("{results:?}");
     assert_eq!(results, [1, 4, 9, 16, 25]);
 }

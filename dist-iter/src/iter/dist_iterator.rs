@@ -4,7 +4,10 @@ use mpi::{
     Tag,
 };
 
-use crate::{iter::map::Map, task::Task};
+use crate::{
+    iter::{map::Map, uninit_buffer::UninitBuffer},
+    task::Task,
+};
 
 pub trait DistIterator<const N: usize> {
     type Item: Equivalence;
@@ -38,7 +41,7 @@ where
     fn into_dist_iter<const N: usize>(self) -> Self::Iter<N> {
         IntoDistIter {
             inner: self.into_iter(),
-            buf: Vec::new(),
+            buf: UninitBuffer::new(),
         }
     }
 }
@@ -49,7 +52,7 @@ where
     Iter::Item: Equivalence,
 {
     inner: Iter,
-    buf: Vec<Iter::Item>, // TODO use array
+    buf: UninitBuffer<Iter::Item, N>,
 }
 
 impl<Iter, const N: usize> DistIterator<N> for IntoDistIter<Iter, N>
@@ -61,17 +64,17 @@ where
 
     fn send_next_to(&mut self, process: Process<'_, SimpleCommunicator>, tag: Tag) -> bool {
         loop {
-            if self.buf.len() < N {
+            if let Some(mut push_handle) = self.buf.push_handle() {
                 if let Some(item) = self.inner.next() {
-                    self.buf.push(item);
+                    push_handle.push(item);
                     continue;
                 }
             }
             break;
         }
-        if self.buf.len() > 0 {
-            eprintln!("sending vec of length {:?}", self.buf.len());
-            process.send_with_tag(&self.buf, tag);
+        if !self.buf.is_empty() {
+            eprintln!("sending vec of length {:?}", self.buf.count());
+            process.send_with_tag(self.buf.init_buffer_ref(), tag);
             self.buf.clear();
             true
         } else {
