@@ -37,15 +37,17 @@ pub trait IntoDistIterator {
     fn into_dist_iter(self) -> Self::Iter;
 }
 
-impl<T> IntoDistIterator for T
+impl<I> IntoDistIterator for I
 where
-    T: Iterator,
-    T::Item: Equivalence,
+    I: IntoIterator,
+    I::Item: Equivalence,
 {
-    type Iter = IntoDistIter<T>;
+    type Iter = IntoDistIter<I::IntoIter>;
 
     fn into_dist_iter(self) -> Self::Iter {
-        IntoDistIter { inner: self }
+        IntoDistIter {
+            inner: self.into_iter(),
+        }
     }
 }
 
