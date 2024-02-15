@@ -1,5 +1,5 @@
-mod dist_iter;
 mod function_registry;
+mod iter;
 mod task;
 mod universe_guard;
 
@@ -13,7 +13,7 @@ use mpi::{
     traits::{Communicator, Source},
 };
 
-pub use crate::dist_iter::*;
+pub use crate::iter::*;
 use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
 pub use crate::{
