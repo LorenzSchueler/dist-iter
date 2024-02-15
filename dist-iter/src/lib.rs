@@ -13,7 +13,7 @@ use mpi::{
     traits::{Communicator, Source},
 };
 
-pub use crate::dist_iter::IntoDistIter;
+pub use crate::dist_iter::*;
 use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
 pub use crate::{

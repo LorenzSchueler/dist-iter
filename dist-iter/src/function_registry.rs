@@ -49,19 +49,19 @@ pub const fn gen_tag(file: &str, line: u32, column: u32) -> Tag {
         ^ (((file_hash[0] as u32) << 24)
             + ((file_hash[1] as u32) << 16)
             + ((file_hash[2] as u32) << 8)
-            + ((file_hash[3] as u32) << 0))
+            + (file_hash[3] as u32))
         ^ (((file_hash[4] as u32) << 24)
             + ((file_hash[5] as u32) << 16)
             + ((file_hash[6] as u32) << 8)
-            + ((file_hash[7] as u32) << 0))
+            + (file_hash[7] as u32))
         ^ (((file_hash[8] as u32) << 24)
             + ((file_hash[9] as u32) << 16)
             + ((file_hash[10] as u32) << 8)
-            + ((file_hash[11] as u32) << 0))
+            + (file_hash[11] as u32))
         ^ (((file_hash[12] as u32) << 24)
             + ((file_hash[13] as u32) << 16)
             + ((file_hash[14] as u32) << 8)
-            + ((file_hash[15] as u32) << 0));
+            + (file_hash[15] as u32));
 
     (tag as Tag).abs()
 }

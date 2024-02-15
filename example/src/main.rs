@@ -1,13 +1,13 @@
-use dist_iter::{task, IntoDistIter};
+use dist_iter::{task, DistIterator, IntoDistIterator};
 
 #[dist_iter::main]
 fn main() {
-    (0..10)
-        .map(task!(i32, i32, |x| x * x))
+    [1, 2, 3]
+        .into_iter()
         .into_dist_iter()
-        .for_each(|v| println!("{v}"));
-    (0..10)
-        .map(task!(u8, u8, |x| x * 2))
+        .map(task!(i32, u64, |x| (x * x) as u64))
+        .map(|x| x * x)
         .into_dist_iter()
+        .map(task!(u64, u32, |x| (x * x) as u32))
         .for_each(|v| println!("{v}"));
 }
