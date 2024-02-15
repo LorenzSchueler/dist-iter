@@ -10,7 +10,7 @@ pub trait Task {
 
 #[macro_export]
 macro_rules! map_task {
-    ($in:ty, $out:ty, $closure:expr) => {{
+    ($n: expr, $in:ty, $out:ty, $closure:expr) => {{
         // make sure closure is of type `[fn($in) -> $out]`
         fn function(input: $in) -> $out {
             $closure(input)
@@ -24,11 +24,15 @@ macro_rules! map_task {
                 ::dist_iter::mpi::topology::SimpleCommunicator,
             >,
         ) -> bool {
-            use ::dist_iter::mpi::point_to_point::{Destination, MatchedReceiveVec};
+            use ::dist_iter::mpi::point_to_point::Destination;
 
-            let (data, status) = (msg, status).matched_receive_vec();
-            let result = data.into_iter().map(function).collect::<Vec<_>>();
-            process.send_with_tag(&result, status.tag());
+            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
+            recv_buf.matched_receive_into(msg);
+            let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
+            for item in recv_buf {
+                send_buf.push_unchecked(function(item));
+            }
+            process.send_with_tag(send_buf.init_buffer_ref(), status.tag());
             false
         }
 

@@ -1,6 +1,7 @@
 use std::mem::MaybeUninit;
 
 use mpi::{
+    point_to_point::Message,
     traits::{Equivalence, Source},
     Rank, Tag,
 };
@@ -20,7 +21,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         }
     }
 
-    pub fn count(&self) -> usize {
+    pub fn init_count(&self) -> usize {
         self.count
     }
 
@@ -32,15 +33,19 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         self.count == N
     }
 
-    pub fn push_handle(&mut self) -> Option<UninitBuferPushHandle<T, N>> {
+    pub fn push_handle(&mut self) -> Option<UninitBufferPushHandle<T, N>> {
         if !self.is_full() {
-            Some(UninitBuferPushHandle { buffer: self })
+            Some(UninitBufferPushHandle { buffer: self })
         } else {
             None
         }
     }
 
-    // only accessed through push handle
+    pub fn push_unchecked(&mut self, item: T) {
+        self.push(item)
+    }
+
+    // only accessed through push handle or push_unchecked
     fn push(&mut self, item: T) {
         self.buf[self.count] = MaybeUninit::new(item);
         self.count += 1;
@@ -77,13 +82,33 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         self.count = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
         status.source_rank()
     }
+
+    pub fn matched_receive_into(&mut self, from: Message) -> Tag
+    where
+        T: Equivalence,
+    {
+        // SAFETY: only safe if used for writes
+        let full_buffer = unsafe { &mut *((&mut self.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
+        //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
+        let status = from.matched_receive_into(full_buffer);
+        self.count = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        status.tag()
+    }
 }
 
-pub struct UninitBuferPushHandle<'b, T, const N: usize> {
+impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop()
+    }
+}
+
+pub struct UninitBufferPushHandle<'b, T, const N: usize> {
     buffer: &'b mut UninitBuffer<T, N>,
 }
 
-impl<'b, T, const N: usize> UninitBuferPushHandle<'b, T, N> {
+impl<'b, T, const N: usize> UninitBufferPushHandle<'b, T, N> {
     pub fn push(&mut self, item: T) {
         self.buffer.push(item)
     }

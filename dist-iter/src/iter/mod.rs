@@ -4,3 +4,4 @@ mod uninit_buffer;
 
 pub use dist_iterator::*;
 pub use map::*;
+pub use uninit_buffer::*;

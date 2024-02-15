@@ -73,7 +73,7 @@ where
             break;
         }
         if !self.buf.is_empty() {
-            eprintln!("sending vec of length {:?}", self.buf.count());
+            eprintln!("sending vec of length {:?}", self.buf.init_count());
             process.send_with_tag(self.buf.init_buffer_ref(), tag);
             self.buf.clear();
             true
