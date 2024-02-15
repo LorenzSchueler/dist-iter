@@ -39,7 +39,7 @@ fn worker() {
         let (msg, status) = world.any_process().matched_probe();
 
         let execute = function_registry::tag_to_execute(status.tag());
-        let stop = execute(msg, world.process_at_rank(0));
+        let stop = execute(msg, status, world.process_at_rank(0));
         if stop {
             break;
         }

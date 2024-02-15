@@ -3,7 +3,7 @@ use std::ops::Deref;
 use linkme::distributed_slice;
 use mpi::{
     environment::Universe,
-    point_to_point::Message,
+    point_to_point::{Message, Status},
     topology::{Process, SimpleCommunicator},
     traits::{Communicator, Destination},
     Tag,
@@ -41,7 +41,7 @@ impl Deref for UniverseGuard {
     }
 }
 
-fn execute(msg: Message, _process: Process<'_, SimpleCommunicator>) -> bool {
+fn execute(msg: Message, _status: Status, _process: Process<'_, SimpleCommunicator>) -> bool {
     msg.matched_receive::<u8>();
     true
 }
