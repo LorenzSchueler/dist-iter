@@ -11,7 +11,7 @@ use crate::{
 pub struct Map<const N: usize, I, T>
 where
     I: DistIterator<N>,
-    T: Task,
+    T: Task<N, IN = I::Item>,
 {
     inner: I,
     task: PhantomData<T>,
@@ -25,7 +25,7 @@ where
 impl<const N: usize, I, T> Map<N, I, T>
 where
     I: DistIterator<N>,
-    T: Task<IN = I::Item>,
+    T: Task<N, IN = I::Item>,
 {
     pub(super) fn new(inner: I, _task: T) -> Self {
         Map {
@@ -43,7 +43,7 @@ where
 impl<const N: usize, I, T> Iterator for Map<N, I, T>
 where
     I: DistIterator<N>,
-    T: Task<IN = I::Item>,
+    T: Task<N, IN = I::Item>,
 {
     type Item = T::OUT;
 

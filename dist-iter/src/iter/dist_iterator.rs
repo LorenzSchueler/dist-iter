@@ -17,7 +17,7 @@ pub trait DistIterator<const N: usize> {
     fn map<T>(self, task: T) -> Map<N, Self, T>
     where
         Self: Sized,
-        T: Task<IN = Self::Item>,
+        T: Task<N, IN = Self::Item>,
     {
         Map::new(self, task)
     }

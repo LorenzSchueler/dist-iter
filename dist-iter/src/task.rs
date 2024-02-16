@@ -1,7 +1,7 @@
 use mpi::{traits::Equivalence, Tag};
 
 #[doc(hidden)]
-pub trait Task {
+pub trait Task<const N: usize> {
     type IN: Equivalence;
     type OUT: Equivalence;
 
@@ -38,11 +38,11 @@ macro_rules! map_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::Task>::TAG, execute);
+            (<ThisTask as ::dist_iter::Task<$n>>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::Task for ThisTask {
+        impl ::dist_iter::Task<$n> for ThisTask {
             type IN = $in;
             type OUT = $out;
 
