@@ -15,6 +15,13 @@ pub trait FilterTask<const N: usize> {
     const TAG: Tag;
 }
 
+#[doc(hidden)]
+pub trait ReduceTask<const N: usize> {
+    type Item: Equivalence;
+
+    const TAG: Tag;
+}
+
 #[macro_export]
 macro_rules! map_task {
     ($n: expr, $in:ty, $out:ty, $closure:expr) => {{
@@ -72,8 +79,8 @@ macro_rules! map_task {
 
 #[macro_export]
 macro_rules! filter_task {
-    ($n: expr, $item:ty,  $closure:expr) => {{
-        // make sure closure is of type `[fn($item) -> $out]`
+    ($n: expr, $item:ty, $closure:expr) => {{
+        // make sure closure is of type `[fn($item) -> bool]`
         fn function(input: &$item) -> bool {
             $closure(input)
         }
@@ -123,5 +130,55 @@ macro_rules! filter_task {
         }
 
         ThisTask {}
+    }};
+}
+
+#[macro_export]
+macro_rules! reduce_task {
+    ($n: expr, $item:ty, $closure:expr) => {{
+        // make sure closure is of type `[fn($item, $item) -> $item]`
+        fn function(acc: $item, item: $item) -> $item {
+            $closure(acc, item)
+        }
+
+        fn execute(
+            msg: ::dist_iter::mpi::point_to_point::Message,
+            status: ::dist_iter::mpi::point_to_point::Status,
+            process: ::dist_iter::mpi::topology::Process<
+                '_,
+                ::dist_iter::mpi::topology::SimpleCommunicator,
+            >,
+        ) -> bool {
+            use ::dist_iter::mpi::point_to_point::Destination;
+
+            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
+            recv_buf.matched_receive_into(msg);
+            eprintln!(
+                "    > [{}] data of length {:?}",
+                std::process::id(),
+                recv_buf.init_count()
+            );
+            let mut acc = recv_buf.pop().unwrap(); // todo can this be written more elegantly?
+            while let Some(item) = recv_buf.pop() {
+                acc = function(acc, item);
+            }
+            eprintln!("    < [{}] reduce result", std::process::id());
+            process.send_with_tag(&acc, status.tag());
+            false
+        }
+
+        #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
+        static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
+            (<ThisTask as ::dist_iter::ReduceTask<$n>>::TAG, execute);
+
+        struct ThisTask {}
+
+        impl ::dist_iter::ReduceTask<$n> for ThisTask {
+            type Item = $item;
+
+            const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
+        }
+
+        (ThisTask {}, $closure)
     }};
 }

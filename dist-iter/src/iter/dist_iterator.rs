@@ -27,7 +27,15 @@ pub trait DistIterator<const N: usize> {
         Filter::new(self, task)
     }
 
-    // fn reduce();
+    fn reduce<T, F>(self, (task, f): (T, F)) -> Option<Self::Item>
+    where
+        Self: Sized,
+        T: ReduceTask<N, Item = Self::Item>,
+        F: FnMut(Self::Item, Self::Item) -> Self::Item,
+    {
+        Reduce::new(self, task, f).value()
+    }
+
     //fn all() -> bool;
     //fn any() -> bool;
     //fn collect<B>(self) -> B
