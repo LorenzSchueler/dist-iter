@@ -4,10 +4,7 @@ use mpi::{
     Tag,
 };
 
-use crate::{
-    iter::{map::Map, uninit_buffer::UninitBuffer},
-    task::MapTask,
-};
+use crate::{iter::*, task::*, uninit_buffer::UninitBuffer};
 
 pub trait DistIterator<const N: usize> {
     type Item: Equivalence;
@@ -22,7 +19,21 @@ pub trait DistIterator<const N: usize> {
         Map::new(self, task)
     }
 
+    fn filter<T>(self, task: T) -> Filter<Self, T, N>
+    where
+        Self: Sized,
+        T: FilterTask<N, Item = Self::Item>,
+    {
+        Filter::new(self, task)
+    }
+
     // fn reduce();
+    //fn all() -> bool;
+    //fn any() -> bool;
+    //fn collect<B>(self) -> B
+    //where
+    //B: FromIterator<Self::Item>,
+    //Self: Sized;
 }
 
 pub trait IntoDistIterator {
@@ -73,7 +84,7 @@ where
             break;
         }
         if !self.buf.is_empty() {
-            eprintln!("> vec of length {:?}", self.buf.init_count());
+            eprintln!("> data of length {:?}", self.buf.init_count());
             process.send_with_tag(self.buf.init_buffer_ref(), tag);
             self.buf.clear();
             true

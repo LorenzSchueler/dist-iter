@@ -1,7 +1,7 @@
 mod dist_iterator;
+mod filter;
 mod map;
-mod uninit_buffer;
 
 pub use dist_iterator::*;
+pub use filter::*;
 pub use map::*;
-pub use uninit_buffer::*;

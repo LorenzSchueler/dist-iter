@@ -1,6 +1,7 @@
 mod function_registry;
 mod iter;
 mod task;
+mod uninit_buffer;
 mod universe_guard;
 
 pub use dist_iter_macros::main;
@@ -18,7 +19,8 @@ use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
 pub use crate::{
     function_registry::{gen_tag, RegistryEntry, FUNCTION_REGISTRY},
-    task::Task,
+    task::*,
+    uninit_buffer::UninitBuffer,
 };
 
 pub fn main(master: fn()) {

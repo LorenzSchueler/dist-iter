@@ -2,30 +2,30 @@ use std::marker::PhantomData;
 
 use mpi::{topology::SimpleCommunicator, traits::Communicator};
 
-use crate::{iter::dist_iterator::DistIterator, task::MapTask, uninit_buffer::UninitBuffer};
+use crate::{iter::dist_iterator::DistIterator, task::FilterTask, uninit_buffer::UninitBuffer};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct Map<I, T, const N: usize>
+pub struct Filter<I, T, const N: usize>
 where
     I: DistIterator<N>,
-    T: MapTask<N, In = I::Item>,
+    T: FilterTask<N, Item = I::Item>,
 {
     inner: I,
     task: PhantomData<T>,
-    buf: UninitBuffer<T::Out, N>,
+    buf: UninitBuffer<T::Item, N>,
     send_count: usize,
     recv_count: usize,
     init: bool,
     world: SimpleCommunicator,
 }
 
-impl<I, T, const N: usize> Map<I, T, N>
+impl<I, T, const N: usize> Filter<I, T, N>
 where
     I: DistIterator<N>,
-    T: MapTask<N, In = I::Item>,
+    T: FilterTask<N, Item = I::Item>,
 {
     pub(super) fn new(inner: I, _task: T) -> Self {
-        Map {
+        Filter {
             inner,
             task: PhantomData,
             buf: UninitBuffer::new(),
@@ -37,12 +37,12 @@ where
     }
 }
 
-impl<I, T, const N: usize> Iterator for Map<I, T, N>
+impl<I, T, const N: usize> Iterator for Filter<I, T, N>
 where
     I: DistIterator<N>,
-    T: MapTask<N, In = I::Item>,
+    T: FilterTask<N, Item = I::Item>,
 {
-    type Item = T::Out;
+    type Item = T::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(item) = self.buf.pop() {
@@ -56,7 +56,7 @@ where
                 }
             }
         }
-        if self.recv_count < self.send_count {
+        while self.recv_count < self.send_count {
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
@@ -66,11 +66,10 @@ where
             if self.inner.send_next_to(process, T::TAG) {
                 self.send_count += 1;
             }
+            if let Some(item) = self.buf.pop() {
+                return Some(item);
+            }
         }
-        if let Some(item) = self.buf.pop() {
-            Some(item)
-        } else {
-            None
-        }
+        None
     }
 }
