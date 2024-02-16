@@ -4,28 +4,28 @@ use mpi::{topology::SimpleCommunicator, traits::Communicator};
 
 use crate::{
     iter::{dist_iterator::DistIterator, uninit_buffer::UninitBuffer},
-    Task,
+    task::MapTask,
 };
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct Map<const N: usize, I, T>
+pub struct Map<I, T, const N: usize>
 where
     I: DistIterator<N>,
-    T: Task<N, IN = I::Item>,
+    T: MapTask<N, In = I::Item>,
 {
     inner: I,
     task: PhantomData<T>,
-    buf: UninitBuffer<T::OUT, N>,
+    buf: UninitBuffer<T::Out, N>,
     send_count: usize,
     recv_count: usize,
     init: bool,
     world: SimpleCommunicator,
 }
 
-impl<const N: usize, I, T> Map<N, I, T>
+impl<I, T, const N: usize> Map<I, T, N>
 where
     I: DistIterator<N>,
-    T: Task<N, IN = I::Item>,
+    T: MapTask<N, In = I::Item>,
 {
     pub(super) fn new(inner: I, _task: T) -> Self {
         Map {
@@ -40,12 +40,12 @@ where
     }
 }
 
-impl<const N: usize, I, T> Iterator for Map<N, I, T>
+impl<I, T, const N: usize> Iterator for Map<I, T, N>
 where
     I: DistIterator<N>,
-    T: Task<N, IN = I::Item>,
+    T: MapTask<N, In = I::Item>,
 {
-    type Item = T::OUT;
+    type Item = T::Out;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(item) = self.buf.pop() {
@@ -63,6 +63,7 @@ where
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
+            eprintln!("< vec of length {:?}", self.buf.init_count());
 
             let process = self.world.process_at_rank(rank);
             if self.inner.send_next_to(process, T::TAG) {

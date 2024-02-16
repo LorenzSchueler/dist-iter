@@ -1,9 +1,9 @@
 use mpi::{traits::Equivalence, Tag};
 
 #[doc(hidden)]
-pub trait Task<const N: usize> {
-    type IN: Equivalence;
-    type OUT: Equivalence;
+pub trait MapTask<const N: usize> {
+    type In: Equivalence;
+    type Out: Equivalence;
 
     const TAG: Tag;
 }
@@ -28,23 +28,33 @@ macro_rules! map_task {
 
             let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             recv_buf.matched_receive_into(msg);
+            eprintln!(
+                "    > [{}] vec of length {:?}",
+                std::process::id(),
+                recv_buf.init_count()
+            );
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             for item in recv_buf {
                 send_buf.push_unchecked(function(item));
             }
+            eprintln!(
+                "    < [{}] vec of length {:?}",
+                std::process::id(),
+                send_buf.init_count()
+            );
             process.send_with_tag(send_buf.init_buffer_ref(), status.tag());
             false
         }
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::Task<$n>>::TAG, execute);
+            (<ThisTask as ::dist_iter::MapTask<$n>>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::Task<$n> for ThisTask {
-            type IN = $in;
-            type OUT = $out;
+        impl ::dist_iter::MapTask<$n> for ThisTask {
+            type In = $in;
+            type Out = $out;
 
             const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
         }

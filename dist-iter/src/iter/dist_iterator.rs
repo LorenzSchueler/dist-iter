@@ -6,7 +6,7 @@ use mpi::{
 
 use crate::{
     iter::{map::Map, uninit_buffer::UninitBuffer},
-    task::Task,
+    task::MapTask,
 };
 
 pub trait DistIterator<const N: usize> {
@@ -14,10 +14,10 @@ pub trait DistIterator<const N: usize> {
 
     fn send_next_to(&mut self, dest: Process<'_, SimpleCommunicator>, tag: Tag) -> bool;
 
-    fn map<T>(self, task: T) -> Map<N, Self, T>
+    fn map<T>(self, task: T) -> Map<Self, T, N>
     where
         Self: Sized,
-        T: Task<N, IN = Self::Item>,
+        T: MapTask<N, In = Self::Item>,
     {
         Map::new(self, task)
     }
@@ -73,7 +73,7 @@ where
             break;
         }
         if !self.buf.is_empty() {
-            eprintln!("sending vec of length {:?}", self.buf.init_count());
+            eprintln!("> vec of length {:?}", self.buf.init_count());
             process.send_with_tag(self.buf.init_buffer_ref(), tag);
             self.buf.clear();
             true
