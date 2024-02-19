@@ -158,12 +158,9 @@ macro_rules! reduce_task {
                 std::process::id(),
                 recv_buf.init_count()
             );
-            let mut acc = recv_buf.pop_front().unwrap(); // TODO can this be written more elegantly?
-            while let Some(item) = recv_buf.pop_front() {
-                acc = function(acc, item);
-            }
+            let result = recv_buf.reduce(function).unwrap(); // will not panic because recv_buf will never be empty
             eprintln!("    < [{}] reduce result", std::process::id());
-            process.send_with_tag(&acc, status.tag());
+            process.send_with_tag(&result, status.tag());
             false
         }
 
