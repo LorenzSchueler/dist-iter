@@ -1,4 +1,4 @@
-use dist_iter::{map_task, DistIterator, IntoDistIterator};
+use dist_iter::{map_iter_task, map_task, DistIterator, IntoDistIterator, UninitBuffer};
 
 #[dist_iter::main]
 fn main() {
@@ -10,4 +10,40 @@ fn main() {
 
     eprintln!("{results:?}");
     assert_eq!(results, [1, 4, 9, 16, 25]);
+
+    // map_iter
+    let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_dist_iter::<2>()
+        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
+            iter.map(|x| x * x)
+        }))
+        .collect();
+    results.sort();
+
+    eprintln!("{results:?}");
+    assert_eq!(results, [1, 4, 9, 16, 25]);
+
+    // map_iter with multiple adapters inside
+    let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_dist_iter::<2>()
+        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
+            iter.map(|x| x * x).filter(|x| x % 2 == 0)
+        }))
+        .collect();
+    results.sort();
+
+    eprintln!("{results:?}");
+    assert_eq!(results, [4, 16]);
+
+    // map_iter with multiple adapters inside and single return value
+    let results = [1, 2, 3, 4, 5]
+        .into_dist_iter::<2>()
+        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
+            let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
+            std::iter::once(sum)
+        }))
+        .sum::<i32>();
+
+    eprintln!("{results:?}");
+    assert_eq!(results, 20);
 }

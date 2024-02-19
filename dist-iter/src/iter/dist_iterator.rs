@@ -19,6 +19,14 @@ pub trait DistIterator<const N: usize> {
         Map::new(self, task)
     }
 
+    fn map_iter<T>(self, task: T) -> MapIter<Self, T, N>
+    where
+        Self: Sized,
+        T: MapIterTask<N, In = Self::Item>,
+    {
+        MapIter::new(self, task)
+    }
+
     fn filter<T>(self, task: T) -> Filter<Self, T, N>
     where
         Self: Sized,
