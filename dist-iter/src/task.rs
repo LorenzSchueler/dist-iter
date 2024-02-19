@@ -49,14 +49,14 @@ macro_rules! map_task {
             );
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             for item in recv_buf {
-                send_buf.push_unchecked(function(item));
+                send_buf.push_back_unchecked(function(item));
             }
             eprintln!(
                 "    < [{}] data of length {:?}",
                 std::process::id(),
                 send_buf.init_count()
             );
-            process.send_with_tag(send_buf.init_buffer_ref(), status.tag());
+            process.send_with_tag(send_buf.init_slice(), status.tag());
             false
         }
 
@@ -105,7 +105,7 @@ macro_rules! filter_task {
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             for item in recv_buf {
                 if function(&item) {
-                    send_buf.push_unchecked(item);
+                    send_buf.push_back_unchecked(item);
                 }
             }
             eprintln!(
@@ -113,7 +113,7 @@ macro_rules! filter_task {
                 std::process::id(),
                 send_buf.init_count()
             );
-            process.send_with_tag(send_buf.init_buffer_ref(), status.tag());
+            process.send_with_tag(send_buf.init_slice(), status.tag());
             false
         }
 
@@ -158,8 +158,8 @@ macro_rules! reduce_task {
                 std::process::id(),
                 recv_buf.init_count()
             );
-            let mut acc = recv_buf.pop().unwrap(); // todo can this be written more elegantly?
-            while let Some(item) = recv_buf.pop() {
+            let mut acc = recv_buf.pop_front().unwrap(); // TODO can this be written more elegantly?
+            while let Some(item) = recv_buf.pop_front() {
                 acc = function(acc, item);
             }
             eprintln!("    < [{}] reduce result", std::process::id());

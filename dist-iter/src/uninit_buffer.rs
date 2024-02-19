@@ -8,7 +8,8 @@ use mpi::{
 
 pub struct UninitBuffer<T, const N: usize> {
     buf: [MaybeUninit<T>; N],
-    count: usize,
+    start: usize,
+    end: usize,
 }
 
 impl<T, const N: usize> UninitBuffer<T, N> {
@@ -17,20 +18,21 @@ impl<T, const N: usize> UninitBuffer<T, N> {
             // SAFETY: An uninitialized `[MaybeUninit<_>; LEN]` is valid.
             buf: unsafe { MaybeUninit::uninit().assume_init() },
             //buf: MaybeUninit::uninit_array(),
-            count: 0,
+            start: 0,
+            end: 0,
         }
     }
 
     pub fn init_count(&self) -> usize {
-        self.count
+        self.end - self.start
     }
 
     pub fn is_empty(&self) -> bool {
-        self.count == 0
+        self.end == 0
     }
 
     pub fn is_full(&self) -> bool {
-        self.count == N
+        self.end == N
     }
 
     pub fn push_handle(&mut self) -> Option<UninitBufferPushHandle<T, N>> {
@@ -41,20 +43,20 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         }
     }
 
-    pub fn push_unchecked(&mut self, item: T) {
-        self.push(item)
+    pub fn push_back_unchecked(&mut self, item: T) {
+        self.push_back(item)
     }
 
     // only accessed through push handle or push_unchecked
-    fn push(&mut self, item: T) {
-        self.buf[self.count] = MaybeUninit::new(item);
-        self.count += 1;
+    fn push_back(&mut self, item: T) {
+        self.buf[self.end] = MaybeUninit::new(item);
+        self.end += 1;
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        if self.count > 0 {
-            let result = unsafe { self.buf[self.count - 1].assume_init_read() };
-            self.count -= 1;
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.start < self.end {
+            let result = unsafe { self.buf[self.start].assume_init_read() };
+            self.start += 1;
             Some(result)
         } else {
             None
@@ -62,12 +64,13 @@ impl<T, const N: usize> UninitBuffer<T, N> {
     }
 
     pub fn clear(&mut self) {
-        self.count = 0;
+        self.start = 0;
+        self.end = 0;
     }
 
-    pub fn init_buffer_ref(&self) -> &[T] {
+    pub fn init_slice(&self) -> &[T] {
         // SAFETY: only the initialized part is returned
-        unsafe { &*((&self.buf[..self.count]) as *const [MaybeUninit<T>] as *const [T]) }
+        unsafe { &*((&self.buf[self.start..self.end]) as *const [MaybeUninit<T>] as *const [T]) }
         //unsafe { MaybeUninit::slice_assume_init_ref(&mut self.buf[..self.count]) },
     }
 
@@ -79,7 +82,8 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         let full_buffer = unsafe { &mut *((&mut self.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
         //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
         let status = process.receive_into_with_tag(full_buffer, tag);
-        self.count = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        self.start = 0;
+        self.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
         status.source_rank()
     }
 
@@ -91,7 +95,8 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         let full_buffer = unsafe { &mut *((&mut self.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
         //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
         let status = from.matched_receive_into(full_buffer);
-        self.count = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        self.start = 0;
+        self.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
         status.tag()
     }
 }
@@ -100,7 +105,7 @@ impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop()
+        self.pop_front()
     }
 }
 
@@ -109,7 +114,7 @@ pub struct UninitBufferPushHandle<'b, T, const N: usize> {
 }
 
 impl<'b, T, const N: usize> UninitBufferPushHandle<'b, T, N> {
-    pub fn push(&mut self, item: T) {
-        self.buffer.push(item)
+    pub fn push_back(&mut self, item: T) {
+        self.buffer.push_back(item)
     }
 }

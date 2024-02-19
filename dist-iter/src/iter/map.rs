@@ -45,7 +45,7 @@ where
     type Item = T::Out;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(item) = self.buf.pop() {
+        if let Some(item) = self.buf.pop_front() {
             return Some(item);
         }
         if !self.init {
@@ -67,7 +67,7 @@ where
                 self.send_count += 1;
             }
         }
-        if let Some(item) = self.buf.pop() {
+        if let Some(item) = self.buf.pop_front() {
             Some(item)
         } else {
             None

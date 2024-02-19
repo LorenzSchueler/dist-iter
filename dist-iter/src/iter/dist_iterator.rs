@@ -85,7 +85,7 @@ where
         loop {
             if let Some(mut push_handle) = self.buf.push_handle() {
                 if let Some(item) = self.inner.next() {
-                    push_handle.push(item);
+                    push_handle.push_back(item);
                     continue;
                 }
             }
@@ -93,7 +93,7 @@ where
         }
         if !self.buf.is_empty() {
             eprintln!("> data of length {:?}", self.buf.init_count());
-            process.send_with_tag(self.buf.init_buffer_ref(), tag);
+            process.send_with_tag(self.buf.init_slice(), tag);
             self.buf.clear();
             true
         } else {
