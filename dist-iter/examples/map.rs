@@ -1,4 +1,4 @@
-use dist_iter::{map_iter_task, map_task, DistIterator, IntoDistIterator, UninitBuffer};
+use dist_iter::{map_iter_task, map_task, DistIterator, IntoDistIterator};
 
 #[dist_iter::main]
 fn main() {
@@ -14,9 +14,7 @@ fn main() {
     // map_iter
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
-            iter.map(|x| x * x)
-        }))
+        .map_iter(map_iter_task!(2, i32, i32, |iter| { iter.map(|x| x * x) }))
         .collect();
     results.sort();
 
@@ -26,7 +24,7 @@ fn main() {
     // map_iter with multiple adapters inside
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
+        .map_iter(map_iter_task!(2, i32, i32, |iter| {
             iter.map(|x| x * x).filter(|x| x % 2 == 0)
         }))
         .collect();
@@ -38,7 +36,7 @@ fn main() {
     // map_iter with multiple adapters inside and single return value
     let results = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(2, i32, i32, |iter: UninitBuffer<_, 2>| {
+        .map_iter(map_iter_task!(2, i32, i32, |iter| {
             let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
             std::iter::once(sum)
         }))

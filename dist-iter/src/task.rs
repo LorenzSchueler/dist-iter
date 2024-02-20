@@ -88,10 +88,10 @@ macro_rules! map_task {
 #[macro_export]
 macro_rules! map_iter_task {
     ($n: expr, $in:ty, $out:ty, $closure:expr) => {{
-        // make sure closure is of type `[fn($[$in]) -> impl IntoIterator<Item = $out>]`
-        //fn function(input: impl Iterator<Item = $in>) -> impl IntoIterator<Item = $out> {
+        // make sure closure is of type `[fn(::dist_iter::UninitBuffer<$in, $n>) -> impl IntoIterator<Item = $out>]`
         fn function(input: ::dist_iter::UninitBuffer<$in, $n>) -> impl IntoIterator<Item = $out> {
-            $closure(input)
+            let c: fn(::dist_iter::UninitBuffer<$in, $n>) -> _ = $closure;
+            c(input)
         }
 
         fn execute(
