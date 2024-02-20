@@ -87,11 +87,11 @@ macro_rules! map_task {
 
 #[macro_export]
 macro_rules! map_iter_task {
-    ($n: expr, $in:ty, $out:ty, $closure:expr) => {{
-        // make sure closure is of type `[fn(::dist_iter::UninitBuffer<$in, $n>) -> impl IntoIterator<Item = $out>]`
-        fn function(input: ::dist_iter::UninitBuffer<$in, $n>) -> impl IntoIterator<Item = $out> {
-            let c: fn(::dist_iter::UninitBuffer<$in, $n>) -> _ = $closure;
-            c(input)
+    ($n: expr, |$closure_param:ident: impl Iterator<Item = $in:ty>| -> impl IntoIterator<Item = $out:ty> $closure_block:block) => {{
+        fn function(
+            $closure_param: ::dist_iter::UninitBuffer<$in, $n>,
+        ) -> impl IntoIterator<Item = $out> {
+            $closure_block
         }
 
         fn execute(
