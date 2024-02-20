@@ -113,7 +113,14 @@ impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
     fn next(&mut self) -> Option<Self::Item> {
         self.pop_front()
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.init_count();
+        (size, Some(size))
+    }
 }
+
+impl<T, const N: usize> ExactSizeIterator for UninitBuffer<T, N> {}
 
 pub struct UninitBufferPushHandle<'b, T, const N: usize> {
     buffer: &'b mut UninitBuffer<T, N>,

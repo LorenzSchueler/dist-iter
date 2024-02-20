@@ -17,7 +17,7 @@ fn main() {
         //.map_iter(map_iter_task!(2, i32, i32, |iter| { iter.map(|x| x * x) }))
         .map_iter(map_iter_task!(
             2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
+            |iter: impl ExactSizeIterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x)
             }
         ))
@@ -32,7 +32,7 @@ fn main() {
         .into_dist_iter::<2>()
         .map_iter(map_iter_task!(
             2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
+            |iter: impl ExactSizeIterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
             }
         ))
@@ -59,7 +59,7 @@ fn main() {
         .into_dist_iter::<2>()
         .map_iter(map_iter_task!(
             2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
+            |iter: impl ExactSizeIterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
                 std::iter::once(sum)
             }
