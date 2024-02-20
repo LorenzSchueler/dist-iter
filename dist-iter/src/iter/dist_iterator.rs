@@ -19,12 +19,12 @@ pub trait DistIterator<const N: usize> {
         Map::new(self, task)
     }
 
-    fn map_iter<T>(self, task: T) -> MapIter<Self, T, N>
+    fn dist_map_chunk<T>(self, task: T) -> MapChunk<Self, T, N>
     where
         Self: Sized,
-        T: MapIterTask<N, In = Self::Item>,
+        T: MapChunkTask<N, In = Self::Item>,
     {
-        MapIter::new(self, task)
+        MapChunk::new(self, task)
     }
 
     fn filter<T>(self, task: T) -> Filter<Self, T, N>

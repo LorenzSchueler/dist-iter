@@ -1,6 +1,6 @@
 use std::ops::DerefMut;
 
-use dist_iter::{map_iter_task, map_task, DistIterator, IntoDistIterator};
+use dist_iter::{map_chunk_task, map_task, DistIterator, IntoDistIterator};
 
 #[dist_iter::main]
 fn main() {
@@ -17,7 +17,7 @@ fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
         //.map_iter(map_iter_task!(2, i32, i32, |iter| { iter.map(|x| x * x) }))
-        .map_iter(map_iter_task!(
+        .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.map(|x| x * x) }
         ))
         .collect();
@@ -29,7 +29,7 @@ fn main() {
     // map_iter with multiple adapters inside
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(
+        .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
             }
@@ -43,7 +43,7 @@ fn main() {
     // map_iter with multiple adapters inside and single return value
     let results = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(
+        .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
                 std::iter::once(sum)
@@ -57,7 +57,7 @@ fn main() {
     // map_iter with use of DerefMut
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map_iter(map_iter_task!(|buf: &mut UninitBuffer<i32, 2>| {
+        .dist_map_chunk(map_chunk_task!(|buf: &mut UninitBuffer<i32, 2>| {
             for item in buf.deref_mut() {
                 *item += 1;
             }

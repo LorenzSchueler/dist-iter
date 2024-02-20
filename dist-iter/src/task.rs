@@ -9,7 +9,7 @@ pub trait MapTask<const N: usize> {
 }
 
 #[doc(hidden)]
-pub trait MapIterTask<const N: usize> {
+pub trait MapChunkTask<const N: usize> {
     type In: Equivalence;
     type Out: Equivalence;
 
@@ -85,7 +85,7 @@ macro_rules! map_task {
 }
 
 #[macro_export]
-macro_rules! map_iter_task {
+macro_rules! map_chunk_task {
     (|$closure_param:ident: UninitBuffer<$in:ty, $n:literal>| -> impl IntoIterator<Item = $out:ty> $closure_block:block) => {{
         fn function(
             $closure_param: ::dist_iter::UninitBuffer<$in, $n>,
@@ -126,11 +126,11 @@ macro_rules! map_iter_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapIterTask<$n>>::TAG, execute);
+            (<ThisTask as ::dist_iter::MapChunkTask<$n>>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapIterTask<$n> for ThisTask {
+        impl ::dist_iter::MapChunkTask<$n> for ThisTask {
             type In = $in;
             type Out = $out;
 
@@ -173,11 +173,11 @@ macro_rules! map_iter_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapIterTask<$n>>::TAG, execute);
+            (<ThisTask as ::dist_iter::MapChunkTask<$n>>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapIterTask<$n> for ThisTask {
+        impl ::dist_iter::MapChunkTask<$n> for ThisTask {
             type In = $in;
             type Out = $in;
 

@@ -2,13 +2,13 @@ use std::marker::PhantomData;
 
 use mpi::{topology::SimpleCommunicator, traits::Communicator};
 
-use crate::{iter::dist_iterator::DistIterator, task::MapIterTask, uninit_buffer::UninitBuffer};
+use crate::{iter::dist_iterator::DistIterator, task::MapChunkTask, uninit_buffer::UninitBuffer};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct MapIter<I, T, const N: usize>
+pub struct MapChunk<I, T, const N: usize>
 where
     I: DistIterator<N>,
-    T: MapIterTask<N, In = I::Item>,
+    T: MapChunkTask<N, In = I::Item>,
 {
     inner: I,
     task: PhantomData<T>,
@@ -19,13 +19,13 @@ where
     world: SimpleCommunicator,
 }
 
-impl<I, T, const N: usize> MapIter<I, T, N>
+impl<I, T, const N: usize> MapChunk<I, T, N>
 where
     I: DistIterator<N>,
-    T: MapIterTask<N, In = I::Item>,
+    T: MapChunkTask<N, In = I::Item>,
 {
     pub(super) fn new(inner: I, _task: T) -> Self {
-        MapIter {
+        MapChunk {
             inner,
             task: PhantomData,
             buf: UninitBuffer::new(),
@@ -37,10 +37,10 @@ where
     }
 }
 
-impl<I, T, const N: usize> Iterator for MapIter<I, T, N>
+impl<I, T, const N: usize> Iterator for MapChunk<I, T, N>
 where
     I: DistIterator<N>,
-    T: MapIterTask<N, In = I::Item>,
+    T: MapChunkTask<N, In = I::Item>,
 {
     type Item = T::Out;
 
