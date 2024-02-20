@@ -16,14 +16,13 @@ mod task;
 mod uninit_buffer;
 mod universe_guard;
 
-pub use crate::iter::*;
 use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
 pub use crate::{
     function_registry::{gen_tag, RegistryEntry, WorkerMode, FUNCTION_REGISTRY},
     task::*,
-    uninit_buffer::UninitBuffer,
 };
+pub use crate::{iter::*, uninit_buffer::UninitBuffer};
 
 #[doc(hidden)]
 pub fn main(master: fn()) -> ExitCode {

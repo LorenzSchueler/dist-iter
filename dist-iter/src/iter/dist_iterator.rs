@@ -99,8 +99,9 @@ where
             }
             break;
         }
+        #[allow(unstable_name_collisions)]
         if !self.buf.is_empty() {
-            eprintln!("> data of length {:?}", self.buf.init_count());
+            eprintln!("> data of length {:?}", self.buf.len());
             process.send_with_tag(&*self.buf, tag);
             self.buf.clear();
             true

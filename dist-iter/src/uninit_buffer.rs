@@ -16,6 +16,7 @@ pub struct UninitBuffer<T, const N: usize> {
 }
 
 impl<T, const N: usize> UninitBuffer<T, N> {
+    #[doc(hidden)]
     pub fn new() -> Self {
         Self {
             // SAFETY: An uninitialized `[MaybeUninit<_>; LEN]` is valid.
@@ -26,19 +27,11 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         }
     }
 
-    pub fn init_count(&self) -> usize {
-        self.end - self.start
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.end == 0
-    }
-
-    pub fn is_full(&self) -> bool {
+    fn is_full(&self) -> bool {
         self.end == N
     }
 
-    pub fn push_handle(&mut self) -> Option<UninitBufferPushHandle<T, N>> {
+    pub(crate) fn push_handle(&mut self) -> Option<UninitBufferPushHandle<T, N>> {
         if !self.is_full() {
             Some(UninitBufferPushHandle { buffer: self })
         } else {
@@ -46,6 +39,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         }
     }
 
+    #[doc(hidden)]
     pub fn push_back_unchecked(&mut self, item: T) {
         self.push_back(item)
     }
@@ -56,17 +50,10 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         self.end += 1;
     }
 
-    pub fn pop_front(&mut self) -> Option<T> {
-        if self.start < self.end {
-            let result = unsafe { self.buf[self.start].assume_init_read() };
-            self.start += 1;
-            Some(result)
-        } else {
-            None
-        }
-    }
-
     pub fn clear(&mut self) {
+        for item in &mut self.buf[self.start..self.end] {
+            unsafe { item.assume_init_drop() };
+        }
         self.start = 0;
         self.end = 0;
     }
@@ -84,17 +71,22 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         status.source_rank()
     }
 
-    pub fn matched_receive_into(&mut self, from: Message) -> Tag
+    #[doc(hidden)]
+    pub fn from_matched_receive(from: Message) -> (Self, Tag)
     where
         T: Equivalence,
     {
+        let mut uninit_buffer = Self::new();
+
         // SAFETY: only safe if used for writes
-        let full_buffer = unsafe { &mut *((&mut self.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
+        let buf_slice_mut =
+            unsafe { &mut *((&mut uninit_buffer.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
         //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
-        let status = from.matched_receive_into(full_buffer);
-        self.start = 0;
-        self.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
-        status.tag()
+
+        let status = from.matched_receive_into(buf_slice_mut);
+        uninit_buffer.start = 0;
+        uninit_buffer.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        (uninit_buffer, status.tag())
     }
 }
 
@@ -108,12 +100,18 @@ impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.pop_front()
+        if self.start < self.end {
+            let result = unsafe { self.buf[self.start].assume_init_read() };
+            self.start += 1;
+            Some(result)
+        } else {
+            None
+        }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = self.init_count();
-        (size, Some(size))
+        let len = self.end - self.start;
+        (len, Some(len))
     }
 }
 

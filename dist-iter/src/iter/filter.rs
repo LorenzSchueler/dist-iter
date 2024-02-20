@@ -45,7 +45,7 @@ where
     type Item = T::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(item) = self.buf.pop_front() {
+        if let Some(item) = self.buf.next() {
             return Some(item);
         }
         if !self.init {
@@ -60,13 +60,13 @@ where
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
-            eprintln!("< data of length {:?}", self.buf.init_count());
+            eprintln!("< data of length {:?}", self.buf.len());
 
             let process = self.world.process_at_rank(rank);
             if self.inner.send_next_to(process, T::TAG) {
                 self.send_count += 1;
             }
-            if let Some(item) = self.buf.pop_front() {
+            if let Some(item) = self.buf.next() {
                 return Some(item);
             }
         }

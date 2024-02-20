@@ -48,12 +48,11 @@ macro_rules! map_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
-            recv_buf.matched_receive_into(msg);
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
-                recv_buf.init_count()
+                recv_buf.len()
             );
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             for item in recv_buf {
@@ -62,7 +61,7 @@ macro_rules! map_task {
             eprintln!(
                 "    < [{}] data of length {:?}",
                 std::process::id(),
-                send_buf.init_count()
+                send_buf.len()
             );
             process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
@@ -104,12 +103,11 @@ macro_rules! map_iter_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
-            recv_buf.matched_receive_into(msg);
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
-                recv_buf.init_count()
+                recv_buf.len()
             );
             let result = function(recv_buf);
 
@@ -120,7 +118,7 @@ macro_rules! map_iter_task {
             eprintln!(
                 "    < [{}] data of length {:?}",
                 std::process::id(),
-                send_buf.init_count()
+                send_buf.len()
             );
             process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
@@ -161,12 +159,11 @@ macro_rules! filter_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
-            recv_buf.matched_receive_into(msg);
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
-                recv_buf.init_count()
+                recv_buf.len()
             );
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
             for item in recv_buf {
@@ -177,7 +174,7 @@ macro_rules! filter_task {
             eprintln!(
                 "    < [{}] data of length {:?}",
                 std::process::id(),
-                send_buf.init_count()
+                send_buf.len()
             );
             process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
@@ -217,12 +214,11 @@ macro_rules! reduce_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
-            recv_buf.matched_receive_into(msg);
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
-                recv_buf.init_count()
+                recv_buf.len()
             );
             let result = recv_buf.reduce(function).unwrap(); // will not panic because recv_buf will never be empty
             eprintln!("    < [{}] reduce result", std::process::id());
