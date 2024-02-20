@@ -67,10 +67,6 @@ where
                 self.send_count += 1;
             }
         }
-        if let Some(item) = self.buf.pop_front() {
-            Some(item)
-        } else {
-            None
-        }
+        self.buf.pop_front()
     }
 }

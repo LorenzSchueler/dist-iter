@@ -101,6 +101,12 @@ impl<T, const N: usize> UninitBuffer<T, N> {
     }
 }
 
+impl<T, const N: usize> Default for UninitBuffer<T, N> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
     type Item = T;
 
