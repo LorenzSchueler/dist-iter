@@ -11,12 +11,12 @@ pub trait DistIterator<const N: usize> {
 
     fn send_next_to(&mut self, dest: Process<'_, SimpleCommunicator>, tag: Tag) -> bool;
 
-    fn map<T>(self, task: T) -> Map<Self, T, N>
+    fn map<T>(self, task: T) -> MapChunk<Self, T, N>
     where
         Self: Sized,
-        T: MapTask<N, In = Self::Item>,
+        T: MapChunkTask<N, In = Self::Item>,
     {
-        Map::new(self, task)
+        MapChunk::new(self, task)
     }
 
     fn dist_map_chunk<T>(self, task: T) -> MapChunk<Self, T, N>
@@ -27,18 +27,18 @@ pub trait DistIterator<const N: usize> {
         MapChunk::new(self, task)
     }
 
-    fn filter<T>(self, task: T) -> Filter<Self, T, N>
+    fn filter<T>(self, task: T) -> MapChunk<Self, T, N>
     where
         Self: Sized,
-        T: FilterTask<N, Item = Self::Item>,
+        T: MapChunkTask<N, In = Self::Item>,
     {
-        Filter::new(self, task)
+        MapChunk::new(self, task)
     }
 
     fn reduce<T, F>(self, (task, f): (T, F)) -> Option<Self::Item>
     where
         Self: Sized,
-        T: ReduceTask<N, Item = Self::Item>,
+        T: MapChunkTask<N, In = Self::Item, Out = Self::Item>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
         Reduce::new(self, task, f).value()

@@ -6,7 +6,7 @@ use dist_iter::{map_chunk_task, map_task, DistIterator, IntoDistIterator};
 fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        .map(map_task!(2, i32, i32, |x| x * x))
+        .map(map_task!(2, |x: i32| -> i32 { x * x }))
         .collect();
     results.sort();
 
@@ -16,7 +16,6 @@ fn main() {
     // map_iter
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_dist_iter::<2>()
-        //.map_iter(map_iter_task!(2, i32, i32, |iter| { iter.map(|x| x * x) }))
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.map(|x| x * x) }
         ))

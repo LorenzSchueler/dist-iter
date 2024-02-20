@@ -5,13 +5,13 @@ use mpi::{
     traits::{Communicator, Source},
 };
 
-use crate::{iter::dist_iterator::DistIterator, task::ReduceTask};
+use crate::{iter::dist_iterator::DistIterator, task::MapChunkTask};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct Reduce<I, T, F, const N: usize>
 where
     I: DistIterator<N>,
-    T: ReduceTask<N, Item = I::Item>,
+    T: MapChunkTask<N, In = I::Item, Out = I::Item>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     inner: I,
@@ -22,7 +22,7 @@ where
 impl<I, T, F, const N: usize> Reduce<I, T, F, N>
 where
     I: DistIterator<N>,
-    T: ReduceTask<N, Item = I::Item>,
+    T: MapChunkTask<N, In = I::Item, Out = I::Item>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     pub(super) fn new(inner: I, _task: T, f: F) -> Self {
