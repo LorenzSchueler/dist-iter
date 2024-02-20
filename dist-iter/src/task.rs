@@ -64,7 +64,7 @@ macro_rules! map_task {
                 std::process::id(),
                 send_buf.init_count()
             );
-            process.send_with_tag(send_buf.init_slice(), status.tag());
+            process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
         }
 
@@ -122,7 +122,7 @@ macro_rules! map_iter_task {
                 std::process::id(),
                 send_buf.init_count()
             );
-            process.send_with_tag(send_buf.init_slice(), status.tag());
+            process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
         }
 
@@ -179,7 +179,7 @@ macro_rules! filter_task {
                 std::process::id(),
                 send_buf.init_count()
             );
-            process.send_with_tag(send_buf.init_slice(), status.tag());
+            process.send_with_tag(&*send_buf, status.tag());
             ::dist_iter::WorkerMode::Continue
         }
 

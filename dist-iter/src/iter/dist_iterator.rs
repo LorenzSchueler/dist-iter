@@ -101,7 +101,7 @@ where
         }
         if !self.buf.is_empty() {
             eprintln!("> data of length {:?}", self.buf.init_count());
-            process.send_with_tag(self.buf.init_slice(), tag);
+            process.send_with_tag(&*self.buf, tag);
             self.buf.clear();
             true
         } else {

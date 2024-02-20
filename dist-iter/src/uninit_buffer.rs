@@ -1,4 +1,7 @@
-use std::mem::MaybeUninit;
+use std::{
+    mem::MaybeUninit,
+    ops::{Deref, DerefMut},
+};
 
 use mpi::{
     point_to_point::Message,
@@ -68,13 +71,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         self.end = 0;
     }
 
-    pub fn init_slice(&self) -> &[T] {
-        // SAFETY: only the initialized part is returned
-        unsafe { &*((&self.buf[self.start..self.end]) as *const [MaybeUninit<T>] as *const [T]) }
-        //unsafe { MaybeUninit::slice_assume_init_ref(&mut self.buf[..self.count]) },
-    }
-
-    pub fn receive_into_with_tag(&mut self, process: impl Source, tag: Tag) -> Rank
+    pub(crate) fn receive_into_with_tag(&mut self, process: impl Source, tag: Tag) -> Rank
     where
         T: Equivalence,
     {
@@ -121,6 +118,26 @@ impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
 }
 
 impl<T, const N: usize> ExactSizeIterator for UninitBuffer<T, N> {}
+
+impl<T, const N: usize> Deref for UninitBuffer<T, N> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        // SAFETY: only the initialized part is returned
+        unsafe { &*((&self.buf[self.start..self.end]) as *const [MaybeUninit<T>] as *const [T]) }
+        //unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[..self.count]) },
+    }
+}
+
+impl<T, const N: usize> DerefMut for UninitBuffer<T, N> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // SAFETY: only the initialized part is returned
+        unsafe {
+            &mut *((&mut self.buf[self.start..self.end]) as *mut [MaybeUninit<T>] as *mut [T])
+        }
+        //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[..self.count]) },
+    }
+}
 
 pub struct UninitBufferPushHandle<'b, T, const N: usize> {
     buffer: &'b mut UninitBuffer<T, N>,
