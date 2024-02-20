@@ -45,7 +45,7 @@ macro_rules! map_task {
                 '_,
                 ::dist_iter::mpi::topology::SimpleCommunicator,
             >,
-        ) -> bool {
+        ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
             let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
@@ -65,7 +65,7 @@ macro_rules! map_task {
                 send_buf.init_count()
             );
             process.send_with_tag(send_buf.init_slice(), status.tag());
-            false
+            ::dist_iter::WorkerMode::Continue
         }
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
@@ -101,7 +101,7 @@ macro_rules! map_iter_task {
                 '_,
                 ::dist_iter::mpi::topology::SimpleCommunicator,
             >,
-        ) -> bool {
+        ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
             let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
@@ -123,7 +123,7 @@ macro_rules! map_iter_task {
                 send_buf.init_count()
             );
             process.send_with_tag(send_buf.init_slice(), status.tag());
-            false
+            ::dist_iter::WorkerMode::Continue
         }
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
@@ -158,7 +158,7 @@ macro_rules! filter_task {
                 '_,
                 ::dist_iter::mpi::topology::SimpleCommunicator,
             >,
-        ) -> bool {
+        ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
             let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
@@ -180,7 +180,7 @@ macro_rules! filter_task {
                 send_buf.init_count()
             );
             process.send_with_tag(send_buf.init_slice(), status.tag());
-            false
+            ::dist_iter::WorkerMode::Continue
         }
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
@@ -214,7 +214,7 @@ macro_rules! reduce_task {
                 '_,
                 ::dist_iter::mpi::topology::SimpleCommunicator,
             >,
-        ) -> bool {
+        ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
             let mut recv_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
@@ -227,7 +227,7 @@ macro_rules! reduce_task {
             let result = recv_buf.reduce(function).unwrap(); // will not panic because recv_buf will never be empty
             eprintln!("    < [{}] reduce result", std::process::id());
             process.send_with_tag(&result, status.tag());
-            false
+            ::dist_iter::WorkerMode::Continue
         }
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]

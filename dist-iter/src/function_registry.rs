@@ -5,7 +5,20 @@ use mpi::{
     Tag,
 };
 
-type RegistryFn = fn(Message, Status, Process<'_, SimpleCommunicator>) -> bool;
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkerMode {
+    Continue,
+    Terminate,
+}
+
+impl WorkerMode {
+    pub fn is_terminate(self) -> bool {
+        self == WorkerMode::Terminate
+    }
+}
+
+type RegistryFn = fn(Message, Status, Process<'_, SimpleCommunicator>) -> WorkerMode;
 
 #[doc(hidden)]
 pub type RegistryEntry = (Tag, RegistryFn);

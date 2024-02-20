@@ -9,7 +9,7 @@ use mpi::{
     Tag,
 };
 
-use crate::function_registry::{RegistryEntry, FUNCTION_REGISTRY};
+use crate::function_registry::{RegistryEntry, WorkerMode, FUNCTION_REGISTRY};
 
 #[doc(hidden)]
 pub(crate) struct UniverseGuard {
@@ -41,9 +41,9 @@ impl Deref for UniverseGuard {
     }
 }
 
-fn execute(msg: Message, _status: Status, _process: Process<'_, SimpleCommunicator>) -> bool {
+fn execute(msg: Message, _status: Status, _process: Process<'_, SimpleCommunicator>) -> WorkerMode {
     msg.matched_receive::<u8>();
-    true
+    WorkerMode::Terminate
 }
 
 #[distributed_slice(FUNCTION_REGISTRY)]
