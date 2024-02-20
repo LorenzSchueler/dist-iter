@@ -11,7 +11,7 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
     } else {
         let main_inner = input.block;
         quote!(
-            fn main() {
+            fn main() -> ::std::process::ExitCode {
                 ::dist_iter::main(master)
             }
 

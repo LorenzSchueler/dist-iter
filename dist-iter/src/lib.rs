@@ -1,8 +1,4 @@
-mod function_registry;
-mod iter;
-mod task;
-mod uninit_buffer;
-mod universe_guard;
+use std::process::ExitCode;
 
 pub use dist_iter_macros::main;
 #[doc(hidden)]
@@ -14,6 +10,12 @@ use mpi::{
     traits::{Communicator, Source},
 };
 
+mod function_registry;
+mod iter;
+mod task;
+mod uninit_buffer;
+mod universe_guard;
+
 pub use crate::iter::*;
 use crate::universe_guard::UniverseGuard;
 #[doc(hidden)]
@@ -23,16 +25,25 @@ pub use crate::{
     uninit_buffer::UninitBuffer,
 };
 
-pub fn main(master: fn()) {
+#[doc(hidden)]
+pub fn main(master: fn()) -> ExitCode {
     function_registry::check_registry();
 
     let universe = UniverseGuard::new(mpi::initialize().unwrap());
+    let world = universe.world();
 
-    if universe.world().rank() == 0 {
+    if world.size() < 2 {
+        eprintln!("dist-iter needs at least 2 ranks");
+        return ExitCode::FAILURE;
+    }
+
+    if world.rank() == 0 {
         master();
     } else {
         worker();
     }
+
+    ExitCode::SUCCESS
 }
 
 fn worker() {
