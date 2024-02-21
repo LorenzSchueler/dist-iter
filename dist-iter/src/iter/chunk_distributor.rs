@@ -6,8 +6,7 @@ use mpi::{
 
 use crate::UninitBuffer;
 
-#[doc(hidden)]
-pub struct ChunkDistributor<Iter, const N: usize>
+pub(super) struct ChunkDistributor<Iter, const N: usize>
 where
     Iter: Iterator,
     Iter::Item: Equivalence,

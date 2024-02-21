@@ -22,7 +22,7 @@ pub use crate::{
     function_registry::{gen_tag, RegistryEntry, WorkerMode, FUNCTION_REGISTRY},
     task::*,
 };
-pub use crate::{iter::*, uninit_buffer::UninitBuffer};
+pub use crate::{iter::DistIterator, uninit_buffer::UninitBuffer};
 
 #[doc(hidden)]
 pub fn main(master: fn()) -> ExitCode {

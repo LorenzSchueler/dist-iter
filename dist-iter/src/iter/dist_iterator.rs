@@ -1,12 +1,15 @@
 use mpi::traits::Equivalence;
 
-use crate::{iter::*, task::*};
+use crate::{
+    iter::{map_chunk::MapChunk, reduce::Reduce},
+    task::*,
+};
 
 pub trait DistIterator<const N: usize>: IntoIterator
 where
     Self::Item: Equivalence,
 {
-    fn dist_map<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
+    fn dist_map<T>(self, task: T) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
@@ -14,7 +17,7 @@ where
         MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_map_chunk<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
+    fn dist_map_chunk<T>(self, task: T) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
@@ -22,7 +25,7 @@ where
         MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_filter<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
+    fn dist_filter<T>(self, task: T) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
@@ -36,6 +39,7 @@ where
         T: MapChunkTask<N, In = Self::Item, Out = Self::Item>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
+        //MapChunk::new(self.into_iter(), task).reduce(f)
         Reduce::new(self.into_iter(), task, f).value()
     }
 

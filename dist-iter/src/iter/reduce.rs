@@ -5,10 +5,10 @@ use mpi::{
     traits::{Communicator, Equivalence, Source},
 };
 
-use crate::{task::MapChunkTask, ChunkDistributor};
+use crate::{iter::chunk_distributor::ChunkDistributor, task::MapChunkTask};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub struct Reduce<I, T, F, const N: usize>
+pub(super) struct Reduce<I, T, F, const N: usize>
 where
     I: Iterator,
     I::Item: Equivalence,

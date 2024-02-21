@@ -11,7 +11,6 @@ use mpi::{
 
 use crate::function_registry::{RegistryEntry, WorkerMode, FUNCTION_REGISTRY};
 
-#[doc(hidden)]
 pub(crate) struct UniverseGuard {
     universe: Universe,
 }

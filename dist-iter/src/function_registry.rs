@@ -55,6 +55,7 @@ pub(crate) fn check_registry() {
 /// Generate tag.
 //
 /// Uniqueness is not guaranteed at compile time but check at runtime.
+#[doc(hidden)]
 pub const fn gen_tag(file: &str, line: u32, column: u32) -> Tag {
     let file_hash: [u8; 20] = const_sha1::sha1(file.as_bytes()).as_bytes();
     let tag: u32 = ((line << 16) + column)
