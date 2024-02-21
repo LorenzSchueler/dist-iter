@@ -30,6 +30,30 @@ pub struct ReduceTask<T: Task> {
     pub task: T,
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! register_execute_and_return_task {
+    ($in:ty, $out:ty, $IN:literal, $OUT:literal) => {{
+        const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
+
+        #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
+        static REGISTRY_ENTRY: ::dist_iter::RegistryEntry = (TAG, execute);
+        struct ThisTask {}
+
+        impl ::dist_iter::Task for ThisTask {
+            type In = $in;
+            type Out = $in;
+
+            const IN: usize = $IN;
+            const OUT: usize = $OUT;
+            const TAG: ::dist_iter::mpi::Tag = TAG;
+        }
+
+        ThisTask {}
+    }};
+}
+
+#[doc(hidden)]
 #[macro_export]
 macro_rules! task {
     (|$closure_param:ident: UninitBuffer<$in:ty, $IN:literal>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
@@ -70,22 +94,7 @@ macro_rules! task {
             ::dist_iter::WorkerMode::Continue
         }
 
-        #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
-        static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::Task>::TAG, execute);
-
-        struct ThisTask {}
-
-        impl ::dist_iter::Task for ThisTask {
-            type In = $in;
-            type Out = $out;
-
-            const IN: usize = $IN;
-            const OUT: usize = $OUT;
-            const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
-        }
-
-        ThisTask {}
+        ::dist_iter::register_execute_and_return_task!($in, $out, $IN, $OUT)
     }};
     (|$closure_param:ident: &mut UninitBuffer<$in:ty, $IN:literal>| $closure_block:block) => {{
         fn function($closure_param: &mut ::dist_iter::UninitBuffer<$in, $IN>) {
@@ -119,22 +128,7 @@ macro_rules! task {
             ::dist_iter::WorkerMode::Continue
         }
 
-        #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
-        static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::Task>::TAG, execute);
-
-        struct ThisTask {}
-
-        impl ::dist_iter::Task for ThisTask {
-            type In = $in;
-            type Out = $in;
-
-            const IN: usize = $IN;
-            const OUT: usize = $IN;
-            const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
-        }
-
-        ThisTask {}
+        ::dist_iter::register_execute_and_return_task!($in, $in, $IN, $IN)
     }};
 }
 
