@@ -1,7 +1,7 @@
 use mpi::{traits::Equivalence, Tag};
 
 #[doc(hidden)]
-pub trait MapChunkTask {
+pub trait Task {
     type In: Equivalence;
     type Out: Equivalence;
 
@@ -10,8 +10,28 @@ pub trait MapChunkTask {
     const TAG: Tag;
 }
 
+#[doc(hidden)]
+pub struct MapChunkTask<T: Task> {
+    pub task: T,
+}
+
+#[doc(hidden)]
+pub struct MapTask<T: Task> {
+    pub task: T,
+}
+
+#[doc(hidden)]
+pub struct FilterTask<T: Task> {
+    pub task: T,
+}
+
+#[doc(hidden)]
+pub struct ReduceTask<T: Task> {
+    pub task: T,
+}
+
 #[macro_export]
-macro_rules! map_chunk_task {
+macro_rules! task {
     (|$closure_param:ident: UninitBuffer<$in:ty, $IN:literal>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
         fn function(
             $closure_param: ::dist_iter::UninitBuffer<$in, $IN>,
@@ -52,11 +72,11 @@ macro_rules! map_chunk_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapChunkTask>::TAG, execute);
+            (<ThisTask as ::dist_iter::Task>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapChunkTask for ThisTask {
+        impl ::dist_iter::Task for ThisTask {
             type In = $in;
             type Out = $out;
 
@@ -101,11 +121,11 @@ macro_rules! map_chunk_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapChunkTask>::TAG, execute);
+            (<ThisTask as ::dist_iter::Task>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapChunkTask for ThisTask {
+        impl ::dist_iter::Task for ThisTask {
             type In = $in;
             type Out = $in;
 
@@ -119,24 +139,37 @@ macro_rules! map_chunk_task {
 }
 
 #[macro_export]
+macro_rules! map_chunk_task {
+    ($($tree:tt)+) => {{
+        ::dist_iter::MapChunkTask{
+            task: ::dist_iter::task!($($tree)+)
+        }
+    }};
+}
+
+#[macro_export]
 macro_rules! map_task {
     ($IN:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
-        ::dist_iter::map_chunk_task!(
-            |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $out, LEN = $IN> {
-                iter.map(|$closure_param: $in| $closure_block)
-            }
-        )
+        ::dist_iter::MapTask {
+            task: ::dist_iter::task!(
+                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $out, LEN = $IN> {
+                    iter.map(|$closure_param: $in| $closure_block)
+                }
+            ),
+        }
     }};
 }
 
 #[macro_export]
 macro_rules! filter_task {
     ($IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
-        ::dist_iter::map_chunk_task!(
-            |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = $IN> {
-                iter.filter(|$closure_param: &$in| $closure_block)
-            }
-        )
+        ::dist_iter::FilterTask {
+            task: ::dist_iter::task!(
+                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = $IN> {
+                    iter.filter(|$closure_param: &$in| $closure_block)
+                }
+            ),
+        }
     }};
 }
 
@@ -145,11 +178,13 @@ macro_rules! reduce_task {
     // TODO make sure in == in2 == in3
     ($IN:literal, |$closure_param1:ident: $in:ty, $closure_param2:ident $(:$in2:ty)?| $(-> $in3:ty)? $closure_block:block) => {{
         (
-            ::dist_iter::map_chunk_task!(
-                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = 1> {
-                    iter.reduce(|$closure_param1: $in, $closure_param2| $closure_block)
-                }
-            ),
+            ::dist_iter::ReduceTask {
+                task: ::dist_iter::task!(
+                    |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = 1> {
+                        iter.reduce(|$closure_param1: $in, $closure_param2| $closure_block)
+                    }
+                ),
+            },
             |$closure_param1: $in, $closure_param2| $closure_block,
         )
     }};

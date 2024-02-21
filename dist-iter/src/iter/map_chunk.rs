@@ -3,16 +3,14 @@ use mpi::{
     traits::{Communicator, Equivalence},
 };
 
-use crate::{
-    iter::chunk_distributor::ChunkDistributor, task::MapChunkTask, uninit_buffer::UninitBuffer,
-};
+use crate::{iter::chunk_distributor::ChunkDistributor, task::Task, uninit_buffer::UninitBuffer};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub(super) struct MapChunk<I, T, const IN: usize, const OUT: usize>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
+    T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     chunk_distributor: ChunkDistributor<I, IN>,
     buf: UninitBuffer<T::Out, OUT>,
@@ -26,7 +24,7 @@ impl<I, T, const IN: usize, const OUT: usize> MapChunk<I, T, IN, OUT>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
+    T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     pub(super) fn new(iter: I, _task: T) -> Self {
         MapChunk {
@@ -44,7 +42,7 @@ impl<I, T, const IN: usize, const OUT: usize> Iterator for MapChunk<I, T, IN, OU
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
+    T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     type Item = T::Out;
 

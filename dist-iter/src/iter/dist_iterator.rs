@@ -11,39 +11,39 @@ where
 {
     fn dist_map_chunk<T, const IN: usize, const OUT: usize>(
         self,
-        task: T,
+        task: MapChunkTask<T>,
     ) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { OUT }>,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { OUT }>,
     {
-        MapChunk::new(self.into_iter(), task)
+        MapChunk::new(self.into_iter(), task.task)
     }
 
-    fn dist_map<T, const IN: usize>(self, task: T) -> impl Iterator<Item = T::Out>
+    fn dist_map<T, const IN: usize>(self, task: MapTask<T>) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { IN }>,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
-        MapChunk::new(self.into_iter(), task)
+        MapChunk::new(self.into_iter(), task.task)
     }
 
-    fn dist_filter<T, const IN: usize>(self, task: T) -> impl Iterator<Item = T::Out>
+    fn dist_filter<T, const IN: usize>(self, task: FilterTask<T>) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { IN }>,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
-        MapChunk::new(self.into_iter(), task)
+        MapChunk::new(self.into_iter(), task.task)
     }
 
-    fn dist_reduce<T, F, const IN: usize>(self, (task, f): (T, F)) -> Option<Self::Item>
+    fn dist_reduce<T, F, const IN: usize>(self, (task, f): (ReduceTask<T>, F)) -> Option<Self::Item>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, Out = Self::Item, IN = { IN }, OUT = { 1 }>,
+        T: Task<In = Self::Item, Out = Self::Item, IN = { IN }, OUT = { 1 }>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
         //MapChunk::new(self.into_iter(), task).reduce(f)
-        Reduce::new(self.into_iter(), task, f).value()
+        Reduce::new(self.into_iter(), task.task, f).value()
     }
 
     //fn all() -> bool;
