@@ -1,3 +1,5 @@
+#![feature(associated_const_equality)]
+
 use std::process::ExitCode;
 
 pub use dist_iter_macros::main;

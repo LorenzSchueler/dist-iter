@@ -12,7 +12,7 @@ pub(super) struct Reduce<I, T, F, const N: usize>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N, In = I::Item, Out = I::Item>,
+    T: MapChunkTask<N = { N }, In = I::Item, Out = I::Item>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     chunk_distributor: ChunkDistributor<I, N>,
@@ -24,7 +24,7 @@ impl<I, T, F, const N: usize> Reduce<I, T, F, N>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N, In = I::Item, Out = I::Item>,
+    T: MapChunkTask<N = { N }, In = I::Item, Out = I::Item>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     pub(super) fn new(iter: I, _task: T, f: F) -> Self {

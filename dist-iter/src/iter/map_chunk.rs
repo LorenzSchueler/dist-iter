@@ -14,7 +14,7 @@ pub(super) struct MapChunk<I, T, const N: usize>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N, In = I::Item>,
+    T: MapChunkTask<N = { N }, In = I::Item>,
 {
     chunk_distributor: ChunkDistributor<I, N>,
     task: PhantomData<T>,
@@ -29,7 +29,7 @@ impl<I, T, const N: usize> MapChunk<I, T, N>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N, In = I::Item>,
+    T: MapChunkTask<N = { N }, In = I::Item>,
 {
     pub(super) fn new(iter: I, _task: T) -> Self {
         MapChunk {
@@ -48,7 +48,7 @@ impl<I, T, const N: usize> Iterator for MapChunk<I, T, N>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N, In = I::Item>,
+    T: MapChunkTask<N = { N }, In = I::Item>,
 {
     type Item = T::Out;
 

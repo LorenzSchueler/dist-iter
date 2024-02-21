@@ -1,10 +1,11 @@
 use mpi::{traits::Equivalence, Tag};
 
 #[doc(hidden)]
-pub trait MapChunkTask<const N: usize> {
+pub trait MapChunkTask {
     type In: Equivalence;
     type Out: Equivalence;
 
+    const N: usize;
     const TAG: Tag;
 }
 
@@ -50,14 +51,15 @@ macro_rules! map_chunk_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapChunkTask<$n>>::TAG, execute);
+            (<ThisTask as ::dist_iter::MapChunkTask>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapChunkTask<$n> for ThisTask {
+        impl ::dist_iter::MapChunkTask for ThisTask {
             type In = $in;
             type Out = $out;
 
+            const N: usize = $n;
             const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
         }
 
@@ -97,14 +99,15 @@ macro_rules! map_chunk_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry =
-            (<ThisTask as ::dist_iter::MapChunkTask<$n>>::TAG, execute);
+            (<ThisTask as ::dist_iter::MapChunkTask>::TAG, execute);
 
         struct ThisTask {}
 
-        impl ::dist_iter::MapChunkTask<$n> for ThisTask {
+        impl ::dist_iter::MapChunkTask for ThisTask {
             type In = $in;
             type Out = $in;
 
+            const N: usize = $n;
             const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
         }
 
