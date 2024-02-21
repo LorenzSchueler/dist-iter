@@ -15,7 +15,9 @@ fn main() {
     // map_iter
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .dist_map_chunk(map_chunk_task!(
-            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.map(|x| x * x) }
+            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
+                iter.map(|x| x * x)
+            }
         ))
         .collect();
     results.sort();
@@ -26,7 +28,7 @@ fn main() {
     // map_iter with multiple adapters inside
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .dist_map_chunk(map_chunk_task!(
-            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
+            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
             }
         ))
@@ -39,7 +41,7 @@ fn main() {
     // map_iter with multiple adapters inside and single return value
     let results = [1, 2, 3, 4, 5]
         .dist_map_chunk(map_chunk_task!(
-            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
+            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
                 std::iter::once(sum)
             }
@@ -49,16 +51,18 @@ fn main() {
     eprintln!("{results:?}");
     assert_eq!(results, 20);
 
-    // TODO
-    //// map_iter with more items in send_buf than in recv_buf
-    //let results = [1, 2, 3, 4, 5]
-    //.dist_map_chunk(map_chunk_task!(
-    //|iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.chain(Some(6)) }
-    //))
-    //.sum::<i32>();
+    // map_iter with more items in send_buf than in recv_buf
+    let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .dist_map_chunk(map_chunk_task!(
+            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 3> {
+                iter.chain(Some(6))
+            }
+        ))
+        .collect();
+    results.sort();
 
-    //eprintln!("{results:?}");
-    //assert_eq!(results, 20);
+    eprintln!("{results:?}");
+    assert_eq!(results, [1, 2, 3, 4, 5, 6, 6, 6]);
 
     // map_iter with use of DerefMut
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
@@ -72,16 +76,4 @@ fn main() {
 
     eprintln!("{results:?}");
     assert_eq!(results, [2, 3, 4, 5, 6]);
-
-    //// map_iter with multiple adapters inside
-    //let mut results: Vec<_> = [1, 2, 3, 4, 5]
-    //.into_dist_iter(worker_task!(2, i32, i32, |iter| {
-    //iter.map(|x| x * x).filter(|x| x % 2 == 0)
-    //}))
-    ////.into_seq_iter()
-    //.collect();
-    //results.sort();
-
-    //eprintln!("{results:?}");
-    //assert_eq!(results, [4, 16]);
 }

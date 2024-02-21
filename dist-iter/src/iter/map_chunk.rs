@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use mpi::{
     topology::SimpleCommunicator,
     traits::{Communicator, Equivalence},
@@ -10,31 +8,29 @@ use crate::{
 };
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub(super) struct MapChunk<I, T, const N: usize>
+pub(super) struct MapChunk<I, T, const IN: usize, const OUT: usize>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N = { N }, In = I::Item>,
+    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
-    chunk_distributor: ChunkDistributor<I, N>,
-    task: PhantomData<T>,
-    buf: UninitBuffer<T::Out, N>,
+    chunk_distributor: ChunkDistributor<I, IN>,
+    buf: UninitBuffer<T::Out, OUT>,
     send_count: usize,
     recv_count: usize,
     init: bool,
     world: SimpleCommunicator,
 }
 
-impl<I, T, const N: usize> MapChunk<I, T, N>
+impl<I, T, const IN: usize, const OUT: usize> MapChunk<I, T, IN, OUT>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N = { N }, In = I::Item>,
+    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     pub(super) fn new(iter: I, _task: T) -> Self {
         MapChunk {
             chunk_distributor: ChunkDistributor::new(iter),
-            task: PhantomData,
             buf: UninitBuffer::new(),
             send_count: 0,
             recv_count: 0,
@@ -44,11 +40,11 @@ where
     }
 }
 
-impl<I, T, const N: usize> Iterator for MapChunk<I, T, N>
+impl<I, T, const IN: usize, const OUT: usize> Iterator for MapChunk<I, T, IN, OUT>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N = { N }, In = I::Item>,
+    T: MapChunkTask<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     type Item = T::Out;
 

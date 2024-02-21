@@ -8,23 +8,23 @@ use mpi::{
 use crate::{iter::chunk_distributor::ChunkDistributor, task::MapChunkTask};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
-pub(super) struct Reduce<I, T, F, const N: usize>
+pub(super) struct Reduce<I, T, F, const IN: usize>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N = { N }, In = I::Item, Out = I::Item>,
+    T: MapChunkTask<In = I::Item, Out = I::Item, IN = { IN }, OUT = { 1 }>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
-    chunk_distributor: ChunkDistributor<I, N>,
+    chunk_distributor: ChunkDistributor<I, IN>,
     task: PhantomData<T>,
     f: F,
 }
 
-impl<I, T, F, const N: usize> Reduce<I, T, F, N>
+impl<I, T, F, const IN: usize> Reduce<I, T, F, IN>
 where
     I: Iterator,
     I::Item: Equivalence,
-    T: MapChunkTask<N = { N }, In = I::Item, Out = I::Item>,
+    T: MapChunkTask<In = I::Item, Out = I::Item, IN = { IN }, OUT = { 1 }>,
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     pub(super) fn new(iter: I, _task: T, f: F) -> Self {

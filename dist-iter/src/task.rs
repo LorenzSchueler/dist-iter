@@ -5,15 +5,16 @@ pub trait MapChunkTask {
     type In: Equivalence;
     type Out: Equivalence;
 
-    const N: usize;
+    const IN: usize;
+    const OUT: usize;
     const TAG: Tag;
 }
 
 #[macro_export]
 macro_rules! map_chunk_task {
-    (|$closure_param:ident: UninitBuffer<$in:ty, $n:literal>| -> impl IntoIterator<Item = $out:ty> $closure_block:block) => {{
+    (|$closure_param:ident: UninitBuffer<$in:ty, $IN:literal>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
         fn function(
-            $closure_param: ::dist_iter::UninitBuffer<$in, $n>,
+            $closure_param: ::dist_iter::UninitBuffer<$in, $IN>,
         ) -> impl IntoIterator<Item = $out> {
             $closure_block
         }
@@ -28,7 +29,7 @@ macro_rules! map_chunk_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
@@ -36,7 +37,7 @@ macro_rules! map_chunk_task {
             );
             let result = function(recv_buf);
 
-            let mut send_buf = ::dist_iter::UninitBuffer::<_, $n>::new();
+            let mut send_buf = ::dist_iter::UninitBuffer::<_, $OUT>::new();
             for item in result {
                 send_buf.push_back_unchecked(item);
             }
@@ -59,14 +60,15 @@ macro_rules! map_chunk_task {
             type In = $in;
             type Out = $out;
 
-            const N: usize = $n;
+            const IN: usize = $IN;
+            const OUT: usize = $OUT;
             const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
         }
 
         ThisTask {}
     }};
-    (|$closure_param:ident: &mut UninitBuffer<$in:ty, $n:literal>| $closure_block:block) => {{
-        fn function($closure_param: &mut ::dist_iter::UninitBuffer<$in, $n>) {
+    (|$closure_param:ident: &mut UninitBuffer<$in:ty, $IN:literal>| $closure_block:block) => {{
+        fn function($closure_param: &mut ::dist_iter::UninitBuffer<$in, $IN>) {
             $closure_block
         }
 
@@ -80,7 +82,7 @@ macro_rules! map_chunk_task {
         ) -> ::dist_iter::WorkerMode {
             use ::dist_iter::mpi::point_to_point::Destination;
 
-            let (mut buf, tag) = ::dist_iter::UninitBuffer::<_, $n>::from_matched_receive(msg);
+            let (mut buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             eprintln!(
                 "    > [{}] data of length {:?}",
                 std::process::id(),
@@ -107,7 +109,8 @@ macro_rules! map_chunk_task {
             type In = $in;
             type Out = $in;
 
-            const N: usize = $n;
+            const IN: usize = $IN;
+            const OUT: usize = $IN;
             const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
         }
 
@@ -117,9 +120,9 @@ macro_rules! map_chunk_task {
 
 #[macro_export]
 macro_rules! map_task {
-    ($n:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
+    ($IN:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
         ::dist_iter::map_chunk_task!(
-            |iter: UninitBuffer<$in, $n>| -> impl IntoIterator<Item = $out> {
+            |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $out, LEN = $IN> {
                 iter.map(|$closure_param: $in| $closure_block)
             }
         )
@@ -128,9 +131,9 @@ macro_rules! map_task {
 
 #[macro_export]
 macro_rules! filter_task {
-    ($n:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
+    ($IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
         ::dist_iter::map_chunk_task!(
-            |iter: UninitBuffer<$in, $n>| -> impl IntoIterator<Item = $in> {
+            |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = $IN> {
                 iter.filter(|$closure_param: &$in| $closure_block)
             }
         )
@@ -140,10 +143,10 @@ macro_rules! filter_task {
 #[macro_export]
 macro_rules! reduce_task {
     // TODO make sure in == in2 == in3
-    ($n:literal, |$closure_param1:ident: $in:ty, $closure_param2:ident $(:$in2:ty)?| $(-> $in3:ty)? $closure_block:block) => {{
+    ($IN:literal, |$closure_param1:ident: $in:ty, $closure_param2:ident $(:$in2:ty)?| $(-> $in3:ty)? $closure_block:block) => {{
         (
             ::dist_iter::map_chunk_task!(
-                |iter: UninitBuffer<$in, $n>| -> impl IntoIterator<Item = $in> {
+                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = 1> {
                     iter.reduce(|$closure_param1: $in, $closure_param2| $closure_block)
                 }
             ),

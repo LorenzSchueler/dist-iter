@@ -9,34 +9,37 @@ pub trait DistIterator: IntoIterator
 where
     Self::Item: Equivalence,
 {
-    fn dist_map<T, const N: usize>(self, task: T) -> impl Iterator<Item = T::Out>
+    fn dist_map_chunk<T, const IN: usize, const OUT: usize>(
+        self,
+        task: T,
+    ) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, N = { N }>,
+        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { OUT }>,
     {
         MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_map_chunk<T, const N: usize>(self, task: T) -> impl Iterator<Item = T::Out>
+    fn dist_map<T, const IN: usize>(self, task: T) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, N = { N }>,
+        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
         MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_filter<T, const N: usize>(self, task: T) -> impl Iterator<Item = T::Out>
+    fn dist_filter<T, const IN: usize>(self, task: T) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, N = { N }>,
+        T: MapChunkTask<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
         MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_reduce<T, F, const N: usize>(self, (task, f): (T, F)) -> Option<Self::Item>
+    fn dist_reduce<T, F, const IN: usize>(self, (task, f): (T, F)) -> Option<Self::Item>
     where
         Self: Sized,
-        T: MapChunkTask<In = Self::Item, Out = Self::Item, N = { N }>,
+        T: MapChunkTask<In = Self::Item, Out = Self::Item, IN = { IN }, OUT = { 1 }>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
         //MapChunk::new(self.into_iter(), task).reduce(f)
