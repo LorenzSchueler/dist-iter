@@ -1,4 +1,6 @@
 #![feature(associated_const_equality)]
+#![feature(maybe_uninit_slice)]
+#![feature(maybe_uninit_uninit_array)]
 
 use std::process::ExitCode;
 

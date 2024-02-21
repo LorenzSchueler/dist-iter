@@ -19,9 +19,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
     #[doc(hidden)]
     pub fn new() -> Self {
         Self {
-            // SAFETY: An uninitialized `[MaybeUninit<_>; LEN]` is valid.
-            buf: unsafe { MaybeUninit::uninit().assume_init() },
-            //buf: MaybeUninit::uninit_array(),
+            buf: MaybeUninit::uninit_array(),
             start: 0,
             end: 0,
         }
@@ -52,6 +50,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
 
     pub fn clear(&mut self) {
         for item in &mut self.buf[self.start..self.end] {
+            // SAFETY: only the initialized part is dropped
             unsafe { item.assume_init_drop() };
         }
         self.start = 0;
@@ -62,10 +61,9 @@ impl<T, const N: usize> UninitBuffer<T, N> {
     where
         T: Equivalence,
     {
-        // SAFETY: only safe if used for writes
-        let full_buffer = unsafe { &mut *((&mut self.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
-        //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
-        let status = process.receive_into_with_tag(full_buffer, tag);
+        // SAFETY: buffer is only written to und start & end are updated according to count
+        let buf_slice_mut = unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) };
+        let status = process.receive_into_with_tag(buf_slice_mut, tag);
         self.start = 0;
         self.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
         status.source_rank()
@@ -78,10 +76,8 @@ impl<T, const N: usize> UninitBuffer<T, N> {
     {
         let mut uninit_buffer = Self::new();
 
-        // SAFETY: only safe if used for writes
-        let buf_slice_mut =
-            unsafe { &mut *((&mut uninit_buffer.buf) as *mut [MaybeUninit<T>] as *mut [T]) };
-        //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) },
+        // SAFETY: buffer is only written to und start & end are updated according to count
+        let buf_slice_mut = unsafe { MaybeUninit::slice_assume_init_mut(&mut uninit_buffer.buf) };
 
         let status = from.matched_receive_into(buf_slice_mut);
         uninit_buffer.start = 0;
@@ -101,9 +97,10 @@ impl<T, const N: usize> Iterator for UninitBuffer<T, N> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.start < self.end {
-            let result = unsafe { self.buf[self.start].assume_init_read() };
+            // SAFETY: only items from the initialized part are returned
+            let item = unsafe { self.buf[self.start].assume_init_read() };
             self.start += 1;
-            Some(result)
+            Some(item)
         } else {
             None
         }
@@ -122,18 +119,14 @@ impl<T, const N: usize> Deref for UninitBuffer<T, N> {
 
     fn deref(&self) -> &Self::Target {
         // SAFETY: only the initialized part is returned
-        unsafe { &*((&self.buf[self.start..self.end]) as *const [MaybeUninit<T>] as *const [T]) }
-        //unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[..self.count]) },
+        unsafe { MaybeUninit::slice_assume_init_ref(&self.buf[self.start..self.end]) }
     }
 }
 
 impl<T, const N: usize> DerefMut for UninitBuffer<T, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: only the initialized part is returned
-        unsafe {
-            &mut *((&mut self.buf[self.start..self.end]) as *mut [MaybeUninit<T>] as *mut [T])
-        }
-        //unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[..self.count]) },
+        unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf[self.start..self.end]) }
     }
 }
 
