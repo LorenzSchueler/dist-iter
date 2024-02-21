@@ -5,9 +5,7 @@ use mpi::{
     traits::{Communicator, Equivalence},
 };
 
-use crate::{
-    iter::dist_iterator::ChunkDistributor, task::MapChunkTask, uninit_buffer::UninitBuffer,
-};
+use crate::{task::MapChunkTask, uninit_buffer::UninitBuffer, ChunkDistributor};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct MapChunk<I, T, const N: usize>
