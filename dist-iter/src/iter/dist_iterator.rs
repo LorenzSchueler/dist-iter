@@ -4,44 +4,43 @@ use mpi::{
     Tag,
 };
 
-use crate::{iter::*, task::*, uninit_buffer::UninitBuffer};
+use crate::{iter::*, task::*, UninitBuffer};
 
-pub trait DistIterator<const N: usize> {
-    type Item: Equivalence;
-
-    fn send_next_to(&mut self, dest: Process<'_, SimpleCommunicator>, tag: Tag) -> bool;
-
-    fn map<T>(self, task: T) -> MapChunk<Self, T, N>
+pub trait DistIterator<const N: usize>: IntoIterator
+where
+    Self::Item: Equivalence,
+{
+    fn dist_map<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
     {
-        MapChunk::new(self, task)
+        MapChunk::new(self.into_iter(), task)
     }
 
-    fn dist_map_chunk<T>(self, task: T) -> MapChunk<Self, T, N>
+    fn dist_map_chunk<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
     {
-        MapChunk::new(self, task)
+        MapChunk::new(self.into_iter(), task)
     }
 
-    fn filter<T>(self, task: T) -> MapChunk<Self, T, N>
+    fn dist_filter<T>(self, task: T) -> MapChunk<Self::IntoIter, T, N>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item>,
     {
-        MapChunk::new(self, task)
+        MapChunk::new(self.into_iter(), task)
     }
 
-    fn reduce<T, F>(self, (task, f): (T, F)) -> Option<Self::Item>
+    fn dist_reduce<T, F>(self, (task, f): (T, F)) -> Option<Self::Item>
     where
         Self: Sized,
         T: MapChunkTask<N, In = Self::Item, Out = Self::Item>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
-        Reduce::new(self, task, f).value()
+        Reduce::new(self.into_iter(), task, f).value()
     }
 
     //fn all() -> bool;
@@ -52,47 +51,43 @@ pub trait DistIterator<const N: usize> {
     //Self: Sized;
 }
 
-pub trait IntoDistIterator {
-    type Iter<const N: usize>: DistIterator<N>;
-
-    fn into_dist_iter<const N: usize>(self) -> Self::Iter<N>;
-}
-
-impl<I> IntoDistIterator for I
+impl<const N: usize, I> DistIterator<N> for I
 where
     I: IntoIterator,
     I::Item: Equivalence,
 {
-    type Iter<const N: usize> = IntoDistIter<I::IntoIter, N>;
-
-    fn into_dist_iter<const N: usize>(self) -> Self::Iter<N> {
-        IntoDistIter {
-            inner: self.into_iter(),
-            buf: UninitBuffer::new(),
-        }
-    }
 }
 
-pub struct IntoDistIter<Iter, const N: usize>
+#[doc(hidden)]
+pub struct ChunkDistributor<Iter, const N: usize>
 where
     Iter: Iterator,
     Iter::Item: Equivalence,
 {
-    inner: Iter,
+    iter: Iter,
     buf: UninitBuffer<Iter::Item, N>,
 }
 
-impl<Iter, const N: usize> DistIterator<N> for IntoDistIter<Iter, N>
+impl<I, const N: usize> ChunkDistributor<I, N>
 where
-    Iter: Iterator,
-    Iter::Item: Equivalence,
+    I: Iterator,
+    I::Item: Equivalence,
 {
-    type Item = Iter::Item;
+    pub(super) fn new(iter: I) -> Self {
+        Self {
+            iter,
+            buf: UninitBuffer::new(),
+        }
+    }
 
-    fn send_next_to(&mut self, process: Process<'_, SimpleCommunicator>, tag: Tag) -> bool {
+    pub(super) fn send_next_to(
+        &mut self,
+        process: Process<'_, SimpleCommunicator>,
+        tag: Tag,
+    ) -> bool {
         loop {
             if let Some(mut push_handle) = self.buf.push_handle() {
-                if let Some(item) = self.inner.next() {
+                if let Some(item) = self.iter.next() {
                     push_handle.push_back(item);
                     continue;
                 }

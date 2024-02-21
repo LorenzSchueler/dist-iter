@@ -1,12 +1,11 @@
 use std::ops::DerefMut;
 
-use dist_iter::{map_chunk_task, map_task, DistIterator, IntoDistIterator};
+use dist_iter::{map_chunk_task, map_task, DistIterator};
 
 #[dist_iter::main]
 fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
-        .into_dist_iter::<2>()
-        .map(map_task!(2, |x: i32| -> i32 { x * x }))
+        .dist_map(map_task!(2, |x: i32| -> i32 { x * x }))
         .collect();
     results.sort();
 
@@ -15,7 +14,6 @@ fn main() {
 
     // map_iter
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
-        .into_dist_iter::<2>()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.map(|x| x * x) }
         ))
@@ -27,7 +25,6 @@ fn main() {
 
     // map_iter with multiple adapters inside
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
-        .into_dist_iter::<2>()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
@@ -41,7 +38,6 @@ fn main() {
 
     // map_iter with multiple adapters inside and single return value
     let results = [1, 2, 3, 4, 5]
-        .into_dist_iter::<2>()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
@@ -53,9 +49,19 @@ fn main() {
     eprintln!("{results:?}");
     assert_eq!(results, 20);
 
+    // TODO
+    //// map_iter with more items in send_buf than in recv_buf
+    //let results = [1, 2, 3, 4, 5]
+    //.dist_map_chunk(map_chunk_task!(
+    //|iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32> { iter.chain(Some(6)) }
+    //))
+    //.sum::<i32>();
+
+    //eprintln!("{results:?}");
+    //assert_eq!(results, 20);
+
     // map_iter with use of DerefMut
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
-        .into_dist_iter::<2>()
         .dist_map_chunk(map_chunk_task!(|buf: &mut UninitBuffer<i32, 2>| {
             for item in buf.deref_mut() {
                 *item += 1;

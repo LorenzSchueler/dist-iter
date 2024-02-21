@@ -1,16 +1,22 @@
 use std::marker::PhantomData;
 
-use mpi::{topology::SimpleCommunicator, traits::Communicator};
+use mpi::{
+    topology::SimpleCommunicator,
+    traits::{Communicator, Equivalence},
+};
 
-use crate::{iter::dist_iterator::DistIterator, task::MapChunkTask, uninit_buffer::UninitBuffer};
+use crate::{
+    iter::dist_iterator::ChunkDistributor, task::MapChunkTask, uninit_buffer::UninitBuffer,
+};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub struct MapChunk<I, T, const N: usize>
 where
-    I: DistIterator<N>,
+    I: Iterator,
+    I::Item: Equivalence,
     T: MapChunkTask<N, In = I::Item>,
 {
-    inner: I,
+    chunk_distributor: ChunkDistributor<I, N>,
     task: PhantomData<T>,
     buf: UninitBuffer<T::Out, N>,
     send_count: usize,
@@ -21,12 +27,13 @@ where
 
 impl<I, T, const N: usize> MapChunk<I, T, N>
 where
-    I: DistIterator<N>,
+    I: Iterator,
+    I::Item: Equivalence,
     T: MapChunkTask<N, In = I::Item>,
 {
-    pub(super) fn new(inner: I, _task: T) -> Self {
+    pub(super) fn new(iter: I, _task: T) -> Self {
         MapChunk {
-            inner,
+            chunk_distributor: ChunkDistributor::new(iter),
             task: PhantomData,
             buf: UninitBuffer::new(),
             send_count: 0,
@@ -39,7 +46,8 @@ where
 
 impl<I, T, const N: usize> Iterator for MapChunk<I, T, N>
 where
-    I: DistIterator<N>,
+    I: Iterator,
+    I::Item: Equivalence,
     T: MapChunkTask<N, In = I::Item>,
 {
     type Item = T::Out;
@@ -51,7 +59,7 @@ where
         if !self.init {
             for dest in 1..self.world.size() {
                 let process = self.world.process_at_rank(dest);
-                if self.inner.send_next_to(process, T::TAG) {
+                if self.chunk_distributor.send_next_to(process, T::TAG) {
                     self.send_count += 1;
                 }
             }
@@ -63,7 +71,7 @@ where
             eprintln!("< data of length {:?}", self.buf.len());
 
             let process = self.world.process_at_rank(rank);
-            if self.inner.send_next_to(process, T::TAG) {
+            if self.chunk_distributor.send_next_to(process, T::TAG) {
                 self.send_count += 1;
             }
         }
