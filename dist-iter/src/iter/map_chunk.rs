@@ -58,7 +58,7 @@ where
                 }
             }
         }
-        if self.recv_count < self.send_count {
+        while self.recv_count < self.send_count {
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
@@ -67,6 +67,10 @@ where
             let process = self.world.process_at_rank(rank);
             if self.chunk_distributor.send_next_to(process, T::TAG) {
                 self.send_count += 1;
+            }
+            // if chunk was empty receive next one til we get a non empty one or recv_count == send_count
+            if let Some(item) = self.buf.next() {
+                return Some(item);
             }
         }
         self.buf.next()

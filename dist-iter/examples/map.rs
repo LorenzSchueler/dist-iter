@@ -76,4 +76,17 @@ fn main() {
 
     eprintln!("{results:?}");
     assert_eq!(results, [2, 3, 4, 5, 6]);
+
+    // map_iter where first result chunks are all empty
+    let mut results: Vec<_> = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 2, 2, 2, 2]
+        .dist_map_chunk(map_chunk_task!(
+            |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
+                iter.filter(|x| x % 2 == 0)
+            }
+        ))
+        .collect();
+    results.sort();
+
+    eprintln!("{results:?}");
+    assert_eq!(results, [2, 2, 2, 2]);
 }
