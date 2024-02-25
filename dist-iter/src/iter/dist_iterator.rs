@@ -5,7 +5,7 @@ use crate::{
     task::*,
 };
 
-pub trait DistIterator: IntoIterator
+pub trait DistIterator: Iterator
 where
     Self::Item: Equivalence,
 {
@@ -17,7 +17,7 @@ where
         Self: Sized,
         T: Task<In = Self::Item, IN = { IN }, OUT = { OUT }>,
     {
-        MapChunk::new(self.into_iter(), task.task)
+        MapChunk::new(self, task.task)
     }
 
     fn dist_map<T, const IN: usize>(self, task: MapTask<T>) -> impl Iterator<Item = T::Out>
@@ -25,7 +25,7 @@ where
         Self: Sized,
         T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
-        MapChunk::new(self.into_iter(), task.task)
+        MapChunk::new(self, task.task)
     }
 
     fn dist_filter<T, const IN: usize>(self, task: FilterTask<T>) -> impl Iterator<Item = T::Out>
@@ -33,7 +33,7 @@ where
         Self: Sized,
         T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
-        MapChunk::new(self.into_iter(), task.task)
+        MapChunk::new(self, task.task)
     }
 
     fn dist_reduce<T, F, const IN: usize>(self, (task, f): (ReduceTask<T>, F)) -> Option<Self::Item>
@@ -42,8 +42,8 @@ where
         T: Task<In = Self::Item, Out = Self::Item, IN = { IN }, OUT = { 1 }>,
         F: FnMut(Self::Item, Self::Item) -> Self::Item,
     {
-        //MapChunk::new(self.into_iter(), task).reduce(f)
-        Reduce::new(self.into_iter(), task.task, f).value()
+        //MapChunk::new(self, task).reduce(f)
+        Reduce::new(self, task.task, f).value()
     }
 
     //fn all() -> bool;
@@ -56,7 +56,7 @@ where
 
 impl<I> DistIterator for I
 where
-    I: IntoIterator,
+    I: Iterator,
     I::Item: Equivalence,
 {
 }

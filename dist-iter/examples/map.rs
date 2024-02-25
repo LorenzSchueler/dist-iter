@@ -5,6 +5,7 @@ use dist_iter::{map_chunk_task, map_task, DistIterator};
 #[dist_iter::main]
 fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map(map_task!(2, |x: i32| -> i32 { x * x }))
         .collect();
     results.sort();
@@ -14,6 +15,7 @@ fn main() {
 
     // map_iter
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 iter.map(|x| x * x)
@@ -27,6 +29,7 @@ fn main() {
 
     // map_iter with multiple adapters inside
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
@@ -40,6 +43,7 @@ fn main() {
 
     // map_iter with multiple adapters inside and single return value
     let results = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
@@ -53,6 +57,7 @@ fn main() {
 
     // map_iter with more items in send_buf than in recv_buf
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 3> {
                 iter.chain(Some(6))
@@ -66,6 +71,7 @@ fn main() {
 
     // map_iter with use of DerefMut
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(|buf: &mut UninitBuffer<i32, 2>| {
             for item in buf.deref_mut() {
                 *item += 1;
@@ -79,6 +85,7 @@ fn main() {
 
     // map_iter where first result chunks are all empty
     let mut results: Vec<_> = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 2, 2, 2, 2]
+        .into_iter()
         .dist_map_chunk(map_chunk_task!(
             |iter: UninitBuffer<i32, 2>| -> impl IntoIterator<Item = i32, LEN = 2> {
                 iter.filter(|x| x % 2 == 0)
