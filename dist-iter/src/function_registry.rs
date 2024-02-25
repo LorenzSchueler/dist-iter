@@ -1,9 +1,5 @@
 use linkme::distributed_slice;
-use mpi::{
-    point_to_point::{Message, Status},
-    topology::{Process, SimpleCommunicator},
-    Tag,
-};
+use mpi::{point_to_point::Message, Tag};
 
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +14,7 @@ impl WorkerMode {
     }
 }
 
-type RegistryFn = fn(Message, Status, Process<'_, SimpleCommunicator>) -> WorkerMode;
+type RegistryFn = fn(Message) -> WorkerMode;
 
 #[doc(hidden)]
 pub type RegistryEntry = (Tag, RegistryFn);

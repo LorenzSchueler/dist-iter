@@ -63,15 +63,11 @@ macro_rules! task {
             $closure_block
         }
 
-        fn execute(
-            msg: ::dist_iter::mpi::point_to_point::Message,
-            status: ::dist_iter::mpi::point_to_point::Status,
-            process: ::dist_iter::mpi::topology::Process<
-                '_,
-                ::dist_iter::mpi::topology::SimpleCommunicator,
-            >,
-        ) -> ::dist_iter::WorkerMode {
-            use ::dist_iter::mpi::point_to_point::Destination;
+        fn execute(msg: ::dist_iter::mpi::point_to_point::Message) -> ::dist_iter::WorkerMode {
+            use ::dist_iter::mpi::{
+                point_to_point::Destination,
+                topology::{Communicator, SimpleCommunicator},
+            };
 
             let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             eprintln!(
@@ -90,7 +86,10 @@ macro_rules! task {
                 std::process::id(),
                 send_buf.len()
             );
-            process.send_with_tag(&*send_buf, status.tag());
+            SimpleCommunicator::world()
+                .process_at_rank(::dist_iter::MASTER)
+                .send_with_tag(&*send_buf, tag);
+
             ::dist_iter::WorkerMode::Continue
         }
 
@@ -101,15 +100,11 @@ macro_rules! task {
             $closure_block
         }
 
-        fn execute(
-            msg: ::dist_iter::mpi::point_to_point::Message,
-            status: ::dist_iter::mpi::point_to_point::Status,
-            process: ::dist_iter::mpi::topology::Process<
-                '_,
-                ::dist_iter::mpi::topology::SimpleCommunicator,
-            >,
-        ) -> ::dist_iter::WorkerMode {
-            use ::dist_iter::mpi::point_to_point::Destination;
+        fn execute(msg: ::dist_iter::mpi::point_to_point::Message) -> ::dist_iter::WorkerMode {
+            use ::dist_iter::mpi::{
+                point_to_point::Destination,
+                topology::{Communicator, SimpleCommunicator},
+            };
 
             let (mut buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             eprintln!(
@@ -124,7 +119,10 @@ macro_rules! task {
                 std::process::id(),
                 buf.len()
             );
-            process.send_with_tag(&*buf, status.tag());
+            SimpleCommunicator::world()
+                .process_at_rank(::dist_iter::MASTER)
+                .send_with_tag(&*buf, tag);
+
             ::dist_iter::WorkerMode::Continue
         }
 

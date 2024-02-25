@@ -12,6 +12,7 @@ pub use mpi;
 use mpi::{
     topology::SimpleCommunicator,
     traits::{Communicator, Source},
+    Rank,
 };
 
 mod function_registry;
@@ -29,6 +30,9 @@ pub use crate::{
 pub use crate::{iter::DistIterator, uninit_buffer::UninitBuffer};
 
 #[doc(hidden)]
+pub const MASTER: Rank = 0;
+
+#[doc(hidden)]
 pub fn main(master: fn()) -> ExitCode {
     function_registry::check_registry();
 
@@ -40,7 +44,7 @@ pub fn main(master: fn()) -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    if world.rank() == 0 {
+    if world.rank() == MASTER {
         master();
     } else {
         worker();
@@ -52,10 +56,10 @@ pub fn main(master: fn()) -> ExitCode {
 fn worker() {
     let world = SimpleCommunicator::world();
     loop {
-        let (msg, status) = world.any_process().matched_probe();
+        let (msg, status) = world.process_at_rank(MASTER).matched_probe();
 
         let execute = function_registry::tag_to_execute(status.tag());
-        let worker_mode = execute(msg, status, world.process_at_rank(0));
+        let worker_mode = execute(msg);
         if worker_mode.is_terminate() {
             break;
         }
