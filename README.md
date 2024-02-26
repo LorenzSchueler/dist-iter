@@ -184,5 +184,3 @@ Therefore, the input and output chunk size can be specified separately.
 sudo apt install libopenmpi-dev
 cargo install cargo-mpirun
 ```
-
-NOTE: additionally to depending on `dist_iter` you also have to add `linkme` to your dependencies.

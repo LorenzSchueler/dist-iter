@@ -1,4 +1,4 @@
 [workspace]
-members = ["dist-iter", "dist-iter-macros"]
+members = ["dist-iter", "dist-iter-macros", "example"]
 
 resolver = "2"

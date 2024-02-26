@@ -36,7 +36,8 @@ macro_rules! register_execute_and_return_task {
     ($in:ty, $out:ty, $IN:literal, $OUT:literal) => {{
         const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
 
-        #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
+        #[::dist_iter::linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
+        #[linkme(crate = ::dist_iter::linkme)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry = (TAG, execute);
 
         struct ThisTask {}
