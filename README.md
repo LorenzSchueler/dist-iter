@@ -45,8 +45,18 @@ Example:
 ## How do I use this library?
 
 1. Annotate your `main` function with `#[dist_iter::main]`
-2. replace those adapters which should be executed in parallel with their `dist_*` equivalent and wrap the closure with the appropriate macro
-3. make sure only a single thread calls methods from `DistIterator`
+2. Replace those adapters which should be executed in parallel with their `dist_*` equivalent and wrap the closure with the appropriate macro
+3. Make sure only a single thread calls methods from `DistIterator`
+4. The items which are sent must implement `mpi::traits::Equivalence`. `Equivalence` is already implemented for all integer and floating point types and for bool. You can derive `Equivalence` for your own structs if all fields implement `Equivalence`.
+    ```rs
+    use mpi::traits::Equivalence;
+
+    #[derive(Equivalence)]
+    struct MyCustomType {
+        x: i32,
+        y: i32,
+    }
+    ```
 
 ## How does this work internally?
 
@@ -55,7 +65,7 @@ It provides methods that are inspired by those in `std::iter::Iterator` but are 
 Each method returns a type which itself implements `std::iter::Iterator` or in some cases (e.g. reduce) the final result.
 
 Multiple items from the underlying iterator are collected into a chunk (for now `[MaybeUninit<T>]`; no allocation required) and then send to a worker rank.
-On the first call to `next()` *every* worker rank will be sent a chunk (this also means that `next()` will be called many times on the underlying iterator).
+On the first call to `next()` *every* worker rank will be sent a chunk (this also means that `next()` will be called multiple times on the underlying iterator).
 After that the master rank blocks until it receives the first response.
 Upon receiving the data, the worker rank executes the closure and sends back the result.
 It then blocks until it receives the next chunk.
@@ -66,7 +76,7 @@ After that the master rank again blocks until it receives the next chunk.
 Implications:
 - elements can (and likely will) be reordered
 - if the next adapter makes no progress the dist adapter will also make no progress once all worker ranks have finished their current work and wait for the send call to return
-- work imbalance is no issue because if a rank takes longer to finish chunks it will just process fewer
+- work imbalance is no issue because if a rank takes longer to finish chunks, it will just process fewer of them
 
 The `main` function has to be annotated with `#[dist_iter::main]`.
 This macro essentially moves the code from `main` into a `master` function.
@@ -80,7 +90,7 @@ This registry associates MPI Tags with function pointers.
 Those functions are responsible for receiving and processing the data and sending back the response. 
 In the infinite loop of the workers a *matching probe* is used to get the tag of the next message.
 This tag is then used to look up the function in the registry. 
-This function is the called with the `MPI_Message` so that it call actually receive and process the data.
+This function is then called with the `MPI_Message` so that it call actually receive and process the data.
 
 The function registry is build at link time.
 In order to register a function a `*_task!(...)` macro has to be used.
@@ -89,7 +99,7 @@ The macros take the closure (which is cast to a function pointer) with type anno
 
 ## Provided methods in `DistIterator`
 
-- `dist_map`: maps one item
+- `dist_map`
     ```rs
     // .dist_map(map_task!(<chunk size>, |x: <input type>| -> <output type> { ... }))
     my_iter.dist_map(map_task!(10, |x: i32| -> i32 { x * x }))
@@ -139,18 +149,17 @@ The macros take the closure (which is cast to a function pointer) with type anno
 
 ## Multiple Parallel Adapters
 
-Since the return value of the `dist_*` methods are Iterators themselves, multiple parallel adapters can be applied after each other.
+Since the return value of the `dist_*` methods are Iterators themselves, multiple parallel adapters can be applied after another.
 
-E.g.
 ```rs
 my_iter
     .dist_map(map_task!(10, |x: i32| -> i32 { x * x }))
     .dist_filter(filter_task!(10, |x: &i32| { x % 2 == 0 }))
 ```
 
-However, keep in mind that in this case the results of `dist_map` are sent back to the master rank and then the received results are sent out again to worker ranks as input for `dist_filter`.
+However, in this case the results of `dist_map` are sent back to the master rank and then the received results are sent out again to worker ranks as input for `dist_filter`.
 
-If this is not intended, and you want to apply both closures at the worker before sending back the result `dist_map_chunk` can be used.
+If this is not intended, and both closures should be applied at the worker before sending back the result `dist_map_chunk` can be used.
 ```rs
 my_iter.dist_map_chunk(map_chunk_task!(
     |iter: UninitBuffer<i32, 5>| -> impl IntoIterator<Item = i32, LEN = 5> {
@@ -161,7 +170,7 @@ my_iter.dist_map_chunk(map_chunk_task!(
 
 ## Chunk Sizes
 
-Chunk sizes can greatly influence how performant the program will be.
+Chunk sizes greatly influence the performance of the program.
 The larger the chunks, the fewer message transfers are necessary.
 However, big (and few) chunks make work balancing worse if the processing time is data dependent.
 
