@@ -44,7 +44,7 @@ macro_rules! register_execute_and_return_task {
 
         impl ::dist_iter::Task for ThisTask {
             type In = $in;
-            type Out = $in;
+            type Out = $out;
 
             const IN: usize = $IN;
             const OUT: usize = $OUT;
