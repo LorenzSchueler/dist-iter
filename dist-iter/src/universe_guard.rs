@@ -8,7 +8,10 @@ use mpi::{
     Tag,
 };
 
-use crate::function_registry::{RegistryEntry, WorkerMode, FUNCTION_REGISTRY};
+use crate::{
+    function_registry::{RegistryEntry, WorkerMode, FUNCTION_REGISTRY},
+    MASTER,
+};
 
 pub(crate) struct UniverseGuard {
     universe: Universe,
@@ -23,7 +26,7 @@ impl UniverseGuard {
 impl Drop for UniverseGuard {
     fn drop(&mut self) {
         let world = self.world();
-        if world.rank() == 0 {
+        if world.rank() == MASTER {
             for dest in 1..world.size() {
                 world.process_at_rank(dest).send_with_tag(&0u8, END_TAG);
             }

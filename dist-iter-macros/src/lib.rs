@@ -6,7 +6,9 @@ use syn::ItemFn;
 pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
     let input: ItemFn = syn::parse2(item.into()).unwrap();
 
-    if input.sig.ident == "main" && !input.sig.inputs.is_empty() {
+    if input.sig.ident != "main" {
+        panic!("only the main function can be annotated with `dist_iter::main`")
+    } else if !input.sig.inputs.is_empty() {
         panic!("the main function cannot accept arguments")
     } else {
         let main_inner = input.block;

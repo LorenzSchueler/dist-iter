@@ -38,6 +38,7 @@ macro_rules! register_execute_and_return_task {
 
         #[linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry = (TAG, execute);
+
         struct ThisTask {}
 
         impl ::dist_iter::Task for ThisTask {
