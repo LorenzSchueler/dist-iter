@@ -24,3 +24,25 @@ pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
         .into()
     }
 }
+
+#[proc_macro_attribute]
+pub fn test(_args: TokenStream, item: TokenStream) -> TokenStream {
+    let input: ItemFn = syn::parse2(item.into()).unwrap();
+
+    if !input.sig.inputs.is_empty() {
+        panic!("the test function cannot accept arguments")
+    } else {
+        let fn_name = input.sig.ident;
+        let main_inner = input.block;
+        quote!(
+            fn #fn_name() -> ::std::process::ExitCode {
+                ::dist_iter::main(master)
+            }
+
+            fn master() {
+                #main_inner
+            }
+        )
+        .into()
+    }
+}

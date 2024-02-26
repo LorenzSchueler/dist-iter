@@ -4,7 +4,7 @@
 
 use std::process::ExitCode;
 
-pub use dist_iter_macros::main;
+pub use dist_iter_macros::{main, test};
 #[doc(hidden)]
 pub use linkme;
 #[doc(hidden)]
