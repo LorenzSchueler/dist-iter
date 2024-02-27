@@ -7,40 +7,9 @@ The master rank sends out chunks of items from the underlying iterator to worker
 
 Example:
 - normal iterator adapters from `std::iter::Iterator`
-    ```rs
-    fn main() {
-        // ...
-        let results: Vec<_> = [1, 2, 3, 4, 5]
-            .into_iter()
-            // possibly more adapters
-            .map(|x: i32| -> i32 { 
-                // very expensive operation
-                x * x 
-            })
-            // possibly more adapters
-            .collect();
-        // ...
-    }
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-std-iter.rs#L1-L13
 - parallelized map
-    ```rs
-    use dist_iter::{map_task, DistIterator};
-
-    #[dist_iter::main]
-    fn main() {
-        // ...
-        let results: Vec<_> = [1, 2, 3, 4, 5]
-            .into_iter()
-            // possibly more adapters
-            .dist_map(map_task!(2, |x: i32| -> i32 {
-                // very expensive operation
-                x * x 
-            }))
-            // possibly more adapters
-            .collect();
-        // ...
-    }
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-dist-iter.rs#L1-L16
 
 ## How do I use this library?
 
@@ -48,15 +17,7 @@ Example:
 2. Replace those adapters which should be executed in parallel with their `dist_*` equivalent and wrap the closure with the appropriate macro
 3. Make sure only a single thread calls methods from `DistIterator`
 4. The items which are sent must implement `mpi::traits::Equivalence`. `Equivalence` is already implemented for all integer and floating point types and for bool. You can derive `Equivalence` for your own structs if all fields implement `Equivalence`.
-    ```rs
-    use mpi::traits::Equivalence;
-
-    #[derive(Equivalence)]
-    struct MyCustomType {
-        x: i32,
-        y: i32,
-    }
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-equivalence.rs#L3-L7
 
 ## How does this work internally?
 
@@ -100,73 +61,26 @@ The macros take the closure (which is cast to a function pointer) with type anno
 ## Provided methods in `DistIterator`
 
 - `dist_map`
-    ```rs
-    // .dist_map(map_task!(<chunk size>, |x: <input type>| -> <output type> { ... }))
-    my_iter.dist_map(map_task!(10, |x: i32| -> i32 { x * x }))
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-provided-methods.rs#L6-L7
 - `dist_filter`
-    ```rs
-    // .dist_filter(filter_task!(<chunk size>, |x: &<type>| { ... }))
-    // OR
-    // .dist_filter(filter_task!(<chunk size>, |x: &<type>| -> bool { ... }))
-    my_iter.dist_filter(filter_task!(10, |x: &i32| { x % 2 == 0 }))
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-provided-methods.rs#L10-L13
 - `dist_reduce`
-    ```rs
-    // .dist_reduce(reduce_task!(<chunk size>, |x: <type>, y| { ... }));
-    // OR
-    // .dist_reduce(reduce_task!(<chunk size>, |x: <type>, y: <type>| { ... }));
-    // OR
-    // .dist_reduce(reduce_task!(<chunk size>, |x: <type>, y: <type>| -> <type> { ... }));
-    // NOTE: type must be the same for x, y and return value
-    my_iter.dist_reduce(reduce_task!(10, |x: i32, y| { x + y }));
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-provided-methods.rs#L16-L22
 - `dist_map_chunk`
-    ```rs
-    // .dist_map_chunk(map_chunk_task!(
-    //     |iter: UninitBuffer<<input type>, <input chunk size>>| 
-    //     -> impl IntoIterator<Item = <output type>, LEN = <output chunk size>> {
-    //         ...
-    //     }
-    // ))
-    // OR
-    // .dist_map_chunk(map_chunk_task!(|buf: &mut UninitBuffer<<type>, <chunk size>>| {
-    //     ...
-    // }))
-    my_iter.dist_map_chunk(map_chunk_task!(
-        |iter: UninitBuffer<i32, 5>| -> impl IntoIterator<Item = i32, LEN = 10> {
-            // return IntoIterator which will return at most LEN items
-            iter.map(|x| x * x).filter(|x| x % 2 == 0)
-        }
-    ))
-    my_iter.dist_map_chunk(map_chunk_task!(|buf: &mut UninitBuffer<i32, 10>| {
-        // modify in place
-        for item in buf.deref_mut() {
-            *item += 1;
-        }
-    }))
-    ```
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-provided-methods.rs#L25-L39
+    https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-provided-methods.rs#L42-L50
 
 ## Multiple Parallel Adapters
 
 Since the return value of the `dist_*` methods are Iterators themselves, multiple parallel adapters can be applied after another.
 
-```rs
-my_iter
-    .dist_map(map_task!(10, |x: i32| -> i32 { x * x }))
-    .dist_filter(filter_task!(10, |x: &i32| { x % 2 == 0 }))
-```
+https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-multiple-adapters.rs#L6-L8
 
 However, in this case the results of `dist_map` are sent back to the master rank and then the received results are sent out again to worker ranks as input for `dist_filter`.
 
 If this is not intended, and both closures should be applied at the worker before sending back the result `dist_map_chunk` can be used.
-```rs
-my_iter.dist_map_chunk(map_chunk_task!(
-    |iter: UninitBuffer<i32, 5>| -> impl IntoIterator<Item = i32, LEN = 5> {
-        iter.map(|x| x * x).filter(|x| x % 2 == 0)
-    }
-))
-```
+
+https://github.com/LorenzSchueler/dist-iter/blob/a906fddf882e3a9d7b10f80508a775890797dc8a/dist-iter/examples/readme-multiple-adapters.rs#L11-L17
 
 ## Chunk Sizes
 
