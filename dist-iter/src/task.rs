@@ -58,10 +58,9 @@ macro_rules! register_execute_and_return_task {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! task {
-    (|$closure_param:ident: UninitBuffer<$in:ty, $IN:literal>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
-        fn function(
-            $closure_param: ::dist_iter::UninitBuffer<$in, $IN>,
-        ) -> impl IntoIterator<Item = $out> {
+    ($IN:literal, |$closure_param:ident: impl Iterator<Item = $in:ty>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
+        #[inline(always)]
+        fn function($closure_param: impl Iterator<Item = $in>) -> impl IntoIterator<Item = $out> {
             $closure_block
         }
 
@@ -97,8 +96,9 @@ macro_rules! task {
 
         ::dist_iter::register_execute_and_return_task!($in, $out, $IN, $OUT)
     }};
-    (|$closure_param:ident: &mut UninitBuffer<$in:ty, $IN:literal>| $closure_block:block) => {{
-        fn function($closure_param: &mut ::dist_iter::UninitBuffer<$in, $IN>) {
+    ($IN:literal, |$closure_param:ident: &mut [$in:ty]| $closure_block:block) => {{
+        #[inline(always)]
+        fn function($closure_param: &mut [$in]) {
             $closure_block
         }
 
@@ -146,7 +146,8 @@ macro_rules! map_task {
     ($IN:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
         ::dist_iter::MapTask {
             task: ::dist_iter::task!(
-                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $out, LEN = $IN> {
+                $IN,
+                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $out, LEN = $IN> {
                     iter.map(|$closure_param: $in| $closure_block)
                 }
             ),
@@ -159,7 +160,8 @@ macro_rules! filter_task {
     ($IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
         ::dist_iter::FilterTask {
             task: ::dist_iter::task!(
-                |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = $IN> {
+                $IN,
+                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in, LEN = $IN> {
                     iter.filter(|$closure_param: &$in| $closure_block)
                 }
             ),
@@ -174,7 +176,8 @@ macro_rules! reduce_task {
         (
             ::dist_iter::ReduceTask {
                 task: ::dist_iter::task!(
-                    |iter: UninitBuffer<$in, $IN>| -> impl IntoIterator<Item = $in, LEN = 1> {
+                    $IN,
+                    |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in, LEN = 1> {
                         iter.reduce(|$closure_param1: $in, $closure_param2| $closure_block)
                     }
                 ),

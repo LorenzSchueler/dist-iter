@@ -48,6 +48,11 @@ where
 
     //fn all() -> bool;
     //fn any() -> bool;
+    // sum
+    // avg
+    // find
+    // max
+    // min
     //fn collect<B>(self) -> B
     //where
     //B: FromIterator<Self::Item>,
