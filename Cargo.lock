@@ -147,10 +147,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "example"
+name = "example-deps"
 version = "0.1.0"
 dependencies = [
  "dist-iter",
+ "mpi",
 ]
 
 [[package]]

@@ -1,0 +1,8 @@
+[package]
+name = "example-deps"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dist-iter = { path = ".." }
+mpi = "0.7"
