@@ -58,7 +58,7 @@ macro_rules! register_execute_and_return_task {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! task {
-    ($IN:literal, |$closure_param:ident: impl Iterator<Item = $in:ty>| -> impl IntoIterator<Item = $out:ty, LEN = $OUT:literal> $closure_block:block) => {{
+    (INPUT_CHUNK_SIZE = $IN:literal, OUTPUT_CHUNK_SIZE = $OUT:literal, |$closure_param:ident: impl Iterator<Item = $in:ty>| -> impl IntoIterator<Item = $out:ty> $closure_block:block) => {{
         #[inline(always)]
         fn function($closure_param: impl Iterator<Item = $in>) -> impl IntoIterator<Item = $out> {
             $closure_block
@@ -96,7 +96,7 @@ macro_rules! task {
 
         ::dist_iter::register_execute_and_return_task!($in, $out, $IN, $OUT)
     }};
-    ($IN:literal, |$closure_param:ident: &mut [$in:ty]| $closure_block:block) => {{
+    (CHUNK_SIZE = $IN:literal, |$closure_param:ident: &mut [$in:ty]| $closure_block:block) => {{
         #[inline(always)]
         fn function($closure_param: &mut [$in]) {
             $closure_block
@@ -143,11 +143,12 @@ macro_rules! map_chunk_task {
 
 #[macro_export]
 macro_rules! map_task {
-    ($IN:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
+    (CHUNK_SIZE = $IN:literal, |$closure_param:ident: $in:ty| -> $out:ty $closure_block:block) => {{
         ::dist_iter::MapTask {
             task: ::dist_iter::task!(
-                $IN,
-                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $out, LEN = $IN> {
+                INPUT_CHUNK_SIZE = $IN,
+                OUTPUT_CHUNK_SIZE = $IN,
+                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $out> {
                     iter.map(|$closure_param: $in| $closure_block)
                 }
             ),
@@ -157,11 +158,12 @@ macro_rules! map_task {
 
 #[macro_export]
 macro_rules! filter_task {
-    ($IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
+    (CHUNK_SIZE = $IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
         ::dist_iter::FilterTask {
             task: ::dist_iter::task!(
-                $IN,
-                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in, LEN = $IN> {
+                INPUT_CHUNK_SIZE = $IN,
+                OUTPUT_CHUNK_SIZE = $IN,
+                |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in> {
                     iter.filter(|$closure_param: &$in| $closure_block)
                 }
             ),
@@ -172,12 +174,13 @@ macro_rules! filter_task {
 #[macro_export]
 macro_rules! reduce_task {
     // TODO make sure in == in2 == in3
-    ($IN:literal, |$closure_param1:ident: $in:ty, $closure_param2:ident $(:$in2:ty)?| $(-> $in3:ty)? $closure_block:block) => {{
+    (CHUNK_SIZE = $IN:literal, |$closure_param1:ident: $in:ty, $closure_param2:ident $(:$in2:ty)?| $(-> $in3:ty)? $closure_block:block) => {{
         (
             ::dist_iter::ReduceTask {
                 task: ::dist_iter::task!(
-                    $IN,
-                    |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in, LEN = 1> {
+                    INPUT_CHUNK_SIZE = $IN,
+                    OUTPUT_CHUNK_SIZE = 1,
+                    |iter: impl Iterator<Item = $in>| -> impl IntoIterator<Item = $in> {
                         iter.reduce(|$closure_param1: $in, $closure_param2| $closure_block)
                     }
                 ),

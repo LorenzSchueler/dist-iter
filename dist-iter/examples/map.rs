@@ -5,7 +5,7 @@ fn main() {
     // map
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
-        .dist_map(map_task!(2, |x: i32| -> i32 { x * x }))
+        .dist_map(map_task!(CHUNK_SIZE = 2, |x: i32| -> i32 { x * x }))
         .collect();
     results.sort();
 
@@ -16,8 +16,9 @@ fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_map_chunk(map_chunk_task!(
-            2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32, LEN = 2> {
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 2,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x)
             }
         ))
@@ -31,8 +32,9 @@ fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_map_chunk(map_chunk_task!(
-            2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32, LEN = 2> {
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 2,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.map(|x| x * x).filter(|x| x % 2 == 0)
             }
         ))
@@ -46,8 +48,9 @@ fn main() {
     let results = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_map_chunk(map_chunk_task!(
-            2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32, LEN = 2> {
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 2,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 let sum = iter.map(|x| x * x).filter(|x| x % 2 == 0).sum::<i32>();
                 std::iter::once(sum)
             }
@@ -61,8 +64,9 @@ fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_map_chunk(map_chunk_task!(
-            2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32, LEN = 3> {
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 3,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.chain(Some(6))
             }
         ))
@@ -75,7 +79,7 @@ fn main() {
     // map_chunk with use of DerefMut
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
-        .dist_map_chunk(map_chunk_task!(2, |buf: &mut [i32]| {
+        .dist_map_chunk(map_chunk_task!(CHUNK_SIZE = 2, |buf: &mut [i32]| {
             for item in buf {
                 *item += 1;
             }
@@ -90,8 +94,9 @@ fn main() {
     let mut results: Vec<_> = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 2, 2, 2, 2]
         .into_iter()
         .dist_map_chunk(map_chunk_task!(
-            2,
-            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32, LEN = 2> {
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 2,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
                 iter.filter(|x| x % 2 == 0)
             }
         ))

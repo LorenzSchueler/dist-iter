@@ -11,7 +11,9 @@ fn main() {
 
     let results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
-        .dist_map(map_task!(2, |x: i32| -> Wrapper { Wrapper { x, y: x } }))
+        .dist_map(map_task!(CHUNK_SIZE = 2, |x: i32| -> Wrapper {
+            Wrapper { x, y: x }
+        }))
         .collect();
 
     eprintln!("{results:?}");
