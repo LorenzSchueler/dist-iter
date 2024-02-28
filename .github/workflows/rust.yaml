@@ -42,7 +42,7 @@ jobs:
       with:
         components: clippy
     - name: cargo clippy
-      run: cargo clippy --all-features --tests --examples
+      run: cargo clippy --all-features --tests --examples -- --deny warnings
     
   doc:
     name: doc

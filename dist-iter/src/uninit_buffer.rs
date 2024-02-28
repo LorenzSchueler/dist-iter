@@ -20,7 +20,9 @@ impl<T, const N: usize> UninitBuffer<T, N> {
 
     #[doc(hidden)]
     pub fn new() -> Self {
-        _ = Self::VALID;
+        #[allow(clippy::let_unit_value)]
+        let _ = Self::VALID;
+
         Self {
             buf: MaybeUninit::uninit_array(),
             start: 0,
