@@ -76,7 +76,8 @@ where
         Reduce::new(self, task.task, f).value()
     }
 
-    // find
+    // dist_find
+    // dist_for_each
 }
 
 impl<I> DistIterator for I

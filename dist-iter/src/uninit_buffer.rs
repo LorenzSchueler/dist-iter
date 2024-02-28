@@ -65,7 +65,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         let buf_slice_mut = unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) };
         let status = process.receive_into_with_tag(buf_slice_mut, tag);
         self.start = 0;
-        self.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        self.end = status.count(T::equivalent_datatype()) as usize;
         status.source_rank()
     }
 
@@ -81,7 +81,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
 
         let status = from.matched_receive_into(buf_slice_mut);
         uninit_buffer.start = 0;
-        uninit_buffer.end = status.count(<T as Equivalence>::equivalent_datatype()) as usize;
+        uninit_buffer.end = status.count(T::equivalent_datatype()) as usize;
         (uninit_buffer, status.tag())
     }
 }

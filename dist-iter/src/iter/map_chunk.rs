@@ -31,7 +31,7 @@ where
     T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
 {
     pub(super) fn new(iter: I, _task: T) -> Self {
-        MapChunk {
+        Self {
             chunk_distributor: ChunkDistributor::new(iter),
             buf: UninitBuffer::new(),
             send_count: 0,

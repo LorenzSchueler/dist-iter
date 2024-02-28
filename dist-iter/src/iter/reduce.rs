@@ -28,7 +28,7 @@ where
     F: FnMut(I::Item, I::Item) -> I::Item,
 {
     pub(super) fn new(iter: I, _task: T, f: F) -> Self {
-        Reduce {
+        Self {
             chunk_distributor: ChunkDistributor::new(iter),
             task: PhantomData,
             f,
