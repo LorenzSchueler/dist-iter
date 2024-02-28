@@ -1,7 +1,8 @@
 use dist_iter::{reduce_task, DistIterator};
 
-#[dist_iter::main]
-fn main() {
+#[test]
+#[dist_iter::test]
+fn reduce() {
     let result = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_reduce(reduce_task!(CHUNK_SIZE = 2, |x: i32, y| { x + y }));

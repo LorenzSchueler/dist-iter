@@ -4,8 +4,9 @@ use dist_iter::{filter_task, DistIterator};
 
 static LOCAL_COUNT: AtomicI32 = AtomicI32::new(0);
 
-#[dist_iter::main]
-fn main() {
+#[test]
+#[dist_iter::test]
+fn filter() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
         .dist_filter(filter_task!(CHUNK_SIZE = 2, |x: &i32| { x % 2 == 0 }))

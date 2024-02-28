@@ -1,7 +1,8 @@
 use dist_iter::{map_task, DistIterator};
 
-#[dist_iter::main]
-fn main() {
+#[test]
+#[dist_iter::test]
+fn map() {
     // map
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
