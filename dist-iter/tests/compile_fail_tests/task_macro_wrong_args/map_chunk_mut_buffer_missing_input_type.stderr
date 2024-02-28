@@ -1,0 +1,11 @@
+error: no rules expected the token `|`
+ --> tests/compile_fail_tests/task_macro_wrong_args/map_chunk_mut_buffer_missing_input_type.rs:6:61
+  |
+6 |         .dist_map_chunk(map_chunk_task!(CHUNK_SIZE = 2, |buf| {
+  |                                                             ^ no rules expected this token in macro call
+  |
+note: while trying to match `:`
+ --> src/task.rs
+  |
+  |     (CHUNK_SIZE = $IN:literal, |$closure_param:ident: &mut [$in:ty]| $closure_block:block) => {{
+  |                                                     ^

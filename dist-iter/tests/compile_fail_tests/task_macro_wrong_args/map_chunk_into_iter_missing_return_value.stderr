@@ -1,0 +1,16 @@
+error[E0277]: `()` is not an iterator
+  --> tests/compile_fail_tests/task_macro_wrong_args/map_chunk_into_iter_missing_return_value.rs:4:48
+   |
+4  |       [1, 2, 3, 4, 5].into_iter().dist_map_chunk(map_chunk_task!(
+   |  ________________________________________________^
+5  | |         INPUT_CHUNK_SIZE = 2,
+6  | |         OUTPUT_CHUNK_SIZE = 2,
+7  | |         |buf: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
+8  | |             buf.map(|x| x + 1);
+9  | |         }
+10 | |     ));
+   | |_____^ `()` is not an iterator
+   |
+   = help: the trait `Iterator` is not implemented for `()`, which is required by `(): IntoIterator`
+   = note: required for `()` to implement `IntoIterator`
+   = note: this error originates in the macro `::dist_iter::task` which comes from the expansion of the macro `map_chunk_task` (in Nightly builds, run with -Z macro-backtrace for more info)

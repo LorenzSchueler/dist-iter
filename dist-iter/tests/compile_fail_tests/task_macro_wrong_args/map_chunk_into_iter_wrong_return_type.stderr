@@ -1,0 +1,32 @@
+error[E0271]: expected `{closure@map_chunk_into_iter_wrong_return_type.rs:7:85}` to be a closure that returns `u32`, but it returns `i32`
+ --> tests/compile_fail_tests/task_macro_wrong_args/map_chunk_into_iter_wrong_return_type.rs:4:48
+  |
+4 |       [1, 2, 3, 4, 5].into_iter().dist_map_chunk(map_chunk_task!(
+  |  ________________________________________________^
+5 | |         INPUT_CHUNK_SIZE = 2,
+6 | |         OUTPUT_CHUNK_SIZE = 2,
+7 | |         |buf: impl Iterator<Item = i32>| -> impl IntoIterator<Item = u32> { buf.map(|x| x + 1) }
+8 | |     ));
+  | |_____^ expected `i32`, found `u32`
+  |
+  = note: required for `Map<impl Iterator<Item = i32>, {closure@map_chunk_into_iter_wrong_return_type.rs:7:85}>` to implement `Iterator`
+  = note: consider using `--verbose` to print the full type name to the console
+  = note: this error originates in the macro `::dist_iter::task` which comes from the expansion of the macro `map_chunk_task` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: `{integer}` is not an iterator
+  --> tests/compile_fail_tests/task_macro_wrong_args/map_chunk_into_iter_wrong_return_type.rs:9:48
+   |
+9  |       [1, 2, 3, 4, 5].into_iter().dist_map_chunk(map_chunk_task!(
+   |  ________________________________________________^
+10 | |         INPUT_CHUNK_SIZE = 2,
+11 | |         OUTPUT_CHUNK_SIZE = 2,
+12 | |         |buf: impl Iterator<Item = u32>| -> impl IntoIterator<Item = u32> {
+...  |
+15 | |         }
+16 | |     ));
+   | |_____^ `{integer}` is not an iterator
+   |
+   = help: the trait `Iterator` is not implemented for `{integer}`, which is required by `{integer}: IntoIterator`
+   = note: if you want to iterate between `start` until a value `end`, use the exclusive range syntax `start..end` or the inclusive range syntax `start..=end`
+   = note: required for `{integer}` to implement `IntoIterator`
+   = note: this error originates in the macro `::dist_iter::task` which comes from the expansion of the macro `map_chunk_task` (in Nightly builds, run with -Z macro-backtrace for more info)

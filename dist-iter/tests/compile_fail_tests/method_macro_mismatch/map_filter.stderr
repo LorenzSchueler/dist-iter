@@ -1,0 +1,33 @@
+error: no rules expected the token `i32`
+ --> tests/compile_fail_tests/method_macro_mismatch/map_filter.rs:6:52
+  |
+6 |         .dist_map(filter_task!(CHUNK_SIZE = 2, |x: i32| -> i32 { x + 1 }));
+  |                                                    ^^^ no rules expected this token in macro call
+  |
+note: while trying to match `&`
+ --> src/task.rs
+  |
+  |     (CHUNK_SIZE = $IN:literal, |$closure_param:ident: &$in:ty| $(-> bool)? $closure_block:block) => {{
+  |                                                       ^
+
+error[E0277]: can't compare `&i32` with `{integer}`
+ --> tests/compile_fail_tests/method_macro_mismatch/map_filter.rs:9:70
+  |
+9 |         .dist_map(filter_task!(CHUNK_SIZE = 2, |x: &i32| -> bool { x == 0 }));
+  |                                                                      ^^ no implementation for `&i32 == {integer}`
+  |
+  = help: the trait `PartialEq<{integer}>` is not implemented for `&i32`
+help: consider dereferencing here
+  |
+9 |         .dist_map(filter_task!(CHUNK_SIZE = 2, |x: &i32| -> bool { *x == 0 }));
+  |                                                                    +
+
+error[E0308]: mismatched types
+ --> tests/compile_fail_tests/method_macro_mismatch/map_filter.rs:9:19
+  |
+9 |         .dist_map(filter_task!(CHUNK_SIZE = 2, |x: &i32| -> bool { x == 0 }));
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `MapTask<_>`, found `FilterTask<ThisTask>`
+  |
+  = note: expected struct `MapTask<_>`
+             found struct `FilterTask<ThisTask>`
+  = note: this error originates in the macro `filter_task` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,0 +1,15 @@
+mod map_chunk_into_iter_missing_chunk_size;
+mod map_chunk_into_iter_missing_input_type;
+mod map_chunk_into_iter_missing_return_type;
+mod map_chunk_into_iter_missing_return_value;
+mod map_chunk_into_iter_wrong_input_type;
+mod map_chunk_into_iter_wrong_return_type;
+mod map_chunk_mut_buffer_missing_chunk_size;
+mod map_chunk_mut_buffer_missing_input_type;
+mod map_chunk_mut_buffer_with_return_value;
+mod map_missing_chunk_size;
+mod map_missing_input_type;
+mod map_missing_return_type;
+mod map_missing_return_value;
+mod map_wrong_input_type;
+mod map_wrong_return_type;

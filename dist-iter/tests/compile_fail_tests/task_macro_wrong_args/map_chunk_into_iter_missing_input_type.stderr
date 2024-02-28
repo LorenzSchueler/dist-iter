@@ -1,0 +1,11 @@
+error: no rules expected the token `|`
+ --> tests/compile_fail_tests/task_macro_wrong_args/map_chunk_into_iter_missing_input_type.rs:9:17
+  |
+9 |             |buf| -> impl IntoIterator<Item = u32> { buf.map(|x| x + 1) }
+  |                 ^ no rules expected this token in macro call
+  |
+note: while trying to match `:`
+ --> src/task.rs
+  |
+  |     (INPUT_CHUNK_SIZE = $IN:literal, OUTPUT_CHUNK_SIZE = $OUT:literal, |$closure_param:ident: impl Iterator<Item = $in:ty>| -> impl IntoI...
+  |                                                                                             ^
