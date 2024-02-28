@@ -105,4 +105,22 @@ fn main() {
 
     eprintln!("{results:?}");
     assert_eq!(results, [2, 2, 2, 2]);
+
+    // map_chunk_collect
+    let mut results = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        .into_iter()
+        .dist_map_chunk_collect(map_chunk_task!(
+            INPUT_CHUNK_SIZE = 2,
+            OUTPUT_CHUNK_SIZE = 2,
+            |iter: impl Iterator<Item = i32>| -> impl IntoIterator<Item = i32> {
+                iter.map(|x| x + 1)
+            }
+        ));
+    results.sort();
+
+    eprintln!("{results:?}");
+    assert_eq!(
+        results,
+        [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    );
 }

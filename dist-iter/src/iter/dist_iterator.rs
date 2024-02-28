@@ -1,7 +1,10 @@
 use mpi::traits::Equivalence;
 
 use crate::{
-    iter::{map_chunk::MapChunk, reduce::Reduce},
+    iter::{
+        map_chunk::{MapChunk, MapChunkCollect},
+        reduce::Reduce,
+    },
     task::*,
 };
 
@@ -18,6 +21,17 @@ where
         T: Task<In = Self::Item, IN = { IN }, OUT = { OUT }>,
     {
         MapChunk::new(self, task.task)
+    }
+
+    fn dist_map_chunk_collect<T, const IN: usize, const OUT: usize>(
+        self,
+        task: MapChunkTask<T>,
+    ) -> Vec<T::Out>
+    where
+        Self: Sized,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { OUT }>,
+    {
+        MapChunkCollect::new(self, task.task).collect()
     }
 
     fn dist_map<T, const IN: usize>(self, task: MapTask<T>) -> impl Iterator<Item = T::Out>
@@ -53,10 +67,6 @@ where
     // find
     // max
     // min
-    //fn collect<B>(self) -> B
-    //where
-    //B: FromIterator<Self::Item>,
-    //Self: Sized;
 }
 
 impl<I> DistIterator for I

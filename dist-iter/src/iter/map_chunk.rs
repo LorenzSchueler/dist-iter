@@ -1,6 +1,10 @@
+use std::marker::PhantomData;
+
 use mpi::{
+    datatype::MutView,
     topology::SimpleCommunicator,
-    traits::{Communicator, Equivalence},
+    traits::{Communicator, Equivalence, Source},
+    Count,
 };
 
 use crate::{iter::chunk_distributor::ChunkDistributor, task::Task, uninit_buffer::UninitBuffer};
@@ -74,5 +78,71 @@ where
             }
         }
         self.buf.next()
+    }
+}
+
+pub(super) struct MapChunkCollect<I, T, const IN: usize, const OUT: usize>
+where
+    I: Iterator,
+    I::Item: Equivalence,
+    T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
+{
+    chunk_distributor: ChunkDistributor<I, IN>,
+    task: PhantomData<T>,
+}
+
+impl<I, T, const IN: usize, const OUT: usize> MapChunkCollect<I, T, IN, OUT>
+where
+    I: Iterator,
+    I::Item: Equivalence,
+    T: Task<In = I::Item, IN = { IN }, OUT = { OUT }>,
+{
+    pub(super) fn new(iter: I, _task: T) -> Self {
+        Self {
+            chunk_distributor: ChunkDistributor::new(iter),
+            task: PhantomData,
+        }
+    }
+
+    pub(super) fn collect(mut self) -> Vec<T::Out> {
+        let world = SimpleCommunicator::world();
+        let mut send_count = 0;
+        let mut recv_count = 0;
+        let mut vec = Vec::new();
+
+        for dest in 1..world.size() {
+            let process = world.process_at_rank(dest);
+            if self.chunk_distributor.send_next_to(process, T::TAG) {
+                send_count += 1;
+            }
+        }
+        while recv_count < send_count {
+            let datatype = T::Out::equivalent_datatype();
+
+            vec.reserve(T::OUT);
+            let len = vec.len();
+            let vec_start: *mut T::Out = vec.as_mut_ptr();
+            // SAFETY: vec has capacity for at least T::OUT more elements. buf is only used to let mpi write into it. the length is set after the recv_len is known.
+            let mut buf = unsafe {
+                let vec_end = &mut *(vec_start).add(len);
+                MutView::with_count_and_datatype(vec_end, T::OUT as Count, &datatype)
+            };
+
+            let process = world.any_process();
+            let status = process.receive_into_with_tag(&mut buf, T::TAG);
+            let rank = status.source_rank();
+            let recv_len = status.count(datatype) as usize;
+            // SAFETY: recv_len additional elements have been written at the end of the vector (within its reserved capacity)
+            unsafe { vec.set_len(len + recv_len) };
+            recv_count += 1;
+            eprintln!("< data of length {:?}", recv_len);
+
+            let process = world.process_at_rank(rank);
+            if self.chunk_distributor.send_next_to(process, T::TAG) {
+                send_count += 1;
+            }
+        }
+
+        vec
     }
 }
