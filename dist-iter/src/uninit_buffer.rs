@@ -16,8 +16,11 @@ pub struct UninitBuffer<T, const N: usize> {
 }
 
 impl<T, const N: usize> UninitBuffer<T, N> {
+    const VALID: () = assert!(N > 0, "CHUNK_SIZE must be greater than 0");
+
     #[doc(hidden)]
     pub fn new() -> Self {
+        _ = Self::VALID;
         Self {
             buf: MaybeUninit::uninit_array(),
             start: 0,
