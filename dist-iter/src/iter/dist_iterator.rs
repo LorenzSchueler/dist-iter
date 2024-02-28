@@ -42,12 +42,28 @@ where
         MapChunk::new(self, task.task)
     }
 
+    fn dist_map_collect<T, const IN: usize>(self, task: MapTask<T>) -> Vec<T::Out>
+    where
+        Self: Sized,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
+    {
+        MapChunkCollect::new(self, task.task).collect()
+    }
+
     fn dist_filter<T, const IN: usize>(self, task: FilterTask<T>) -> impl Iterator<Item = T::Out>
     where
         Self: Sized,
         T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
     {
         MapChunk::new(self, task.task)
+    }
+
+    fn dist_filter_collect<T, const IN: usize>(self, task: FilterTask<T>) -> Vec<T::Out>
+    where
+        Self: Sized,
+        T: Task<In = Self::Item, IN = { IN }, OUT = { IN }>,
+    {
+        MapChunkCollect::new(self, task.task).collect()
     }
 
     fn dist_reduce<T, F, const IN: usize>(self, (task, f): (ReduceTask<T>, F)) -> Option<Self::Item>
@@ -60,13 +76,7 @@ where
         Reduce::new(self, task.task, f).value()
     }
 
-    //fn all() -> bool;
-    //fn any() -> bool;
-    // sum
-    // avg
     // find
-    // max
-    // min
 }
 
 impl<I> DistIterator for I

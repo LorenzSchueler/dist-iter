@@ -12,6 +12,15 @@ fn main() {
     eprintln!("{results:?}");
     assert_eq!(results, [1, 4, 9, 16, 25]);
 
+    // map_collect
+    let mut results = [1, 2, 3, 4, 5]
+        .into_iter()
+        .dist_map_collect(map_task!(CHUNK_SIZE = 2, |x: i32| -> i32 { x * x }));
+    results.sort();
+
+    eprintln!("{results:?}");
+    assert_eq!(results, [1, 4, 9, 16, 25]);
+
     // map_chunk
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
         .into_iter()
