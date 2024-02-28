@@ -1,0 +1,13 @@
+error[E0080]: evaluation of `dist_iter::UninitBuffer::<i32, 0>::VALID` failed
+ --> src/uninit_buffer.rs
+  |
+  |     const VALID: () = assert!(N > 0, "CHUNK_SIZE must be greater than 0");
+  |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the evaluated program panicked at 'CHUNK_SIZE must be greater than 0', $DIR/src/uninit_buffer.rs:19:23
+  |
+  = note: this error originates in the macro `$crate::panic::panic_2021` which comes from the expansion of the macro `assert` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+note: the above error was encountered while instantiating `fn dist_iter::UninitBuffer::<i32, 0>::new`
+  --> src/iter/chunk_distributor.rs
+   |
+   |             buf: UninitBuffer::new(),
+   |                  ^^^^^^^^^^^^^^^^^^^
