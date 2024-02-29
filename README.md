@@ -77,6 +77,15 @@ The macros take the closure (which is cast to a function pointer) with type anno
     Unlike the `collect` method in `std::iter::Iterator` the collect variant is not generic over the collection type.
     In order to collect into a different collection the normal variant followed by a call to `collect` has to be used.
     https://github.com/LorenzSchueler/dist-iter/blob/885638d42b080fc7033797be07ee9cc0a1c2fea7/dist-iter/examples/readme-provided-methods.rs#L59-L60
+- Most of the methods in `std::iter::Iterator` make no sense in this context because it will be cheaper to execute them on the master rank instead of sending the data to a worker and then sending back the result. 
+
+    Others *might* be useful, but can be simulated easily by one of the `dist_*` adapters:
+    - `find(predicate)` → `dist_filter(predicate).next()`
+    - `sum()` → `dist_reduce(std::ops::Add::add).unwrap_or_default()`
+    - `max()` → `dist_reduce(std::cmp::max)`
+    - `min()` → `dist_reduce(std::cmp::min)`
+    - `all(predicate)` → `dist_filter(!predicate).next().is_none()`
+    - `any(predicate)` → `dist_filter(predicate).next().is_some()`
 
 ## Multiple Parallel Adapters
 
