@@ -1,4 +1,4 @@
-use dist_iter::{filter_task, map_chunk_task, map_task, reduce_task, DistIterator};
+use dist_iter::{filter_task, for_each_task, map_chunk_task, map_task, reduce_task, DistIterator};
 
 #[dist_iter::main]
 fn main() {
@@ -39,13 +39,23 @@ fn main() {
     ));
 
     let my_iter = [].into_iter();
-    // .dist_map_chunk(map_chunk_task!(CHUNK_SIZE = <N>, |buf: &mut [<type>]| {
+    // .dist_map_chunk(map_chunk_task!(CHUNK_SIZE = <N>, |chunk: &mut [<type>]| {
     //     ...
     // }))
-    let _ = my_iter.dist_map_chunk(map_chunk_task!(CHUNK_SIZE = 10, |buf: &mut [i32]| {
+    let _ = my_iter.dist_map_chunk(map_chunk_task!(CHUNK_SIZE = 10, |chunk: &mut [i32]| {
         // modify in place
-        for item in buf {
+        for item in chunk {
             *item += 1;
         }
     }));
+
+    let my_iter = [].into_iter();
+    // .dist_for_each(for_each_task!(CHUNK_SIZE = <N>, |x: <type>| { ... }));
+    my_iter.dist_for_each(for_each_task!(CHUNK_SIZE = 10, |x: i32| {
+        println!("{x}");
+    }));
+
+    let my_iter = [].into_iter();
+    // .dist_map_collect(map_task!(CHUNK_SIZE = <N>, |x: <input type>| -> <output type> { ... }))
+    let _ = my_iter.dist_map_collect(map_task!(CHUNK_SIZE = 10, |x: i32| -> i32 { x * x }));
 }
