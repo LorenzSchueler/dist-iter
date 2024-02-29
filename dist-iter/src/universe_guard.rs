@@ -27,8 +27,9 @@ impl Drop for UniverseGuard {
     fn drop(&mut self) {
         let world = self.world();
         if world.rank() == MASTER {
+            let buf: [u8; 0] = [];
             for dest in 1..world.size() {
-                world.process_at_rank(dest).send_with_tag(&0u8, END_TAG);
+                world.process_at_rank(dest).send_with_tag(&buf, END_TAG);
             }
         }
     }
@@ -43,7 +44,8 @@ impl Deref for UniverseGuard {
 }
 
 fn execute(msg: Message) -> WorkerMode {
-    msg.matched_receive::<u8>();
+    let mut buf: [u8; 0] = [];
+    msg.matched_receive_into(&mut buf);
     WorkerMode::Terminate
 }
 
