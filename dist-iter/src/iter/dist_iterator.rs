@@ -2,6 +2,7 @@ use mpi::traits::Equivalence;
 
 use crate::{
     iter::{
+        for_each::ForEach,
         map_chunk::{MapChunk, MapChunkCollect},
         reduce::Reduce,
     },
@@ -76,8 +77,13 @@ where
         Reduce::new(self, task.task, f).value()
     }
 
-    // dist_find
-    // dist_for_each
+    fn dist_for_each<T, const IN: usize>(self, task: ForEachTask<T>)
+    where
+        Self: Sized,
+        T: Task<In = Self::Item, Out = u8, IN = { IN }, OUT = { 0 }>,
+    {
+        ForEach::new(self, task.task).for_each()
+    }
 }
 
 impl<I> DistIterator for I

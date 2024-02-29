@@ -31,6 +31,11 @@ pub struct ReduceTask<T: Task> {
 }
 
 #[doc(hidden)]
+pub struct ForEachTask<T: Task> {
+    pub task: T,
+}
+
+#[doc(hidden)]
 #[macro_export]
 macro_rules! register_execute_and_return_task {
     ($in:ty, $out:ty, $IN:literal, $OUT:literal) => {{
@@ -132,6 +137,46 @@ macro_rules! task {
     }};
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! no_response_task {
+    (INPUT_CHUNK_SIZE = $IN:literal, |$closure_param:ident: impl Iterator<Item = $in:ty>| $closure_block:block) => {{
+        #[inline(always)]
+        fn function($closure_param: impl Iterator<Item = $in>) {
+            $closure_block
+        }
+
+        fn execute(msg: ::dist_iter::mpi::point_to_point::Message) -> ::dist_iter::WorkerMode {
+            use ::dist_iter::mpi::{
+                point_to_point::Destination,
+                topology::{Communicator, SimpleCommunicator},
+            };
+
+            let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
+            eprintln!(
+                "    > [{}] data of length {:?}",
+                std::process::id(),
+                recv_buf.len()
+            );
+            function(recv_buf);
+
+            let send_buf: [u8; 0] = [];
+            eprintln!(
+                "    < [{}] data of length {:?}",
+                std::process::id(),
+                send_buf.len()
+            );
+            SimpleCommunicator::world()
+                .process_at_rank(::dist_iter::MASTER)
+                .send_with_tag(&send_buf, tag);
+
+            ::dist_iter::WorkerMode::Continue
+        }
+
+        ::dist_iter::register_execute_and_return_task!($in, u8, $IN, 0)
+    }};
+}
+
 #[macro_export]
 macro_rules! map_chunk_task {
     ($($tree:tt)+) => {{
@@ -187,5 +232,18 @@ macro_rules! reduce_task {
             },
             |$closure_param1: $in, $closure_param2| $closure_block,
         )
+    }};
+}
+
+#[macro_export]
+macro_rules! for_each_task {
+    (CHUNK_SIZE = $IN:literal, |$closure_param:ident: $in:ty| $closure_block:block) => {{
+        ::dist_iter::ForEachTask {
+            task: ::dist_iter::no_response_task! {
+                INPUT_CHUNK_SIZE = $IN,
+                |iter: impl Iterator<Item = $in>| {
+                iter.for_each(|$closure_param: $in| $closure_block);
+            }},
+        }
     }};
 }

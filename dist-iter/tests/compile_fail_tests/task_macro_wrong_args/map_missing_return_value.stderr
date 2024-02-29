@@ -1,4 +1,4 @@
-error[E0271]: expected `{closure@task.rs:152:30}` to be a closure that returns `i32`, but it returns `()`
+error[E0271]: expected `{closure@task.rs:197:30}` to be a closure that returns `i32`, but it returns `()`
  --> tests/compile_fail_tests/task_macro_wrong_args/map_missing_return_value.rs:6:19
   |
 6 |           .dist_map(map_task!(CHUNK_SIZE = 2, |x: i32| -> i32 {
@@ -7,5 +7,5 @@ error[E0271]: expected `{closure@task.rs:152:30}` to be a closure that returns `
 8 | |         }));
   | |__________^ expected `()`, found `i32`
   |
-  = note: required for `Map<impl Iterator<Item = i32>, {closure@$DIR/src/task.rs:152:30: 152:51}>` to implement `Iterator`
+  = note: required for `Map<impl Iterator<Item = i32>, {closure@$DIR/src/task.rs:197:30: 197:51}>` to implement `Iterator`
   = note: this error originates in the macro `::dist_iter::task` which comes from the expansion of the macro `map_task` (in Nightly builds, run with -Z macro-backtrace for more info)
