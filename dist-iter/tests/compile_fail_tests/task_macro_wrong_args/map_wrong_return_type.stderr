@@ -1,8 +1,0 @@
-error[E0271]: expected `{closure@task.rs:197:30}` to be a closure that returns `u32`, but it returns `i32`
- --> tests/compile_fail_tests/task_macro_wrong_args/map_wrong_return_type.rs:6:19
-  |
-6 |         .dist_map(map_task!(CHUNK_SIZE = 2, |x: i32| -> u32 { x + 1 }));
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `i32`, found `u32`
-  |
-  = note: required for `Map<impl Iterator<Item = i32>, {closure@$DIR/src/task.rs:197:30: 197:51}>` to implement `Iterator`
-  = note: this error originates in the macro `::dist_iter::task` which comes from the expansion of the macro `map_task` (in Nightly builds, run with -Z macro-backtrace for more info)

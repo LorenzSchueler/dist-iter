@@ -10,4 +10,4 @@ mpi = { version = "0.7.0", features = ["derive", "user-operations"] }
 dist-iter-macros = { path = "../dist-iter-macros" }
 
 [dev-dependencies]
-trybuild = "1.0.89"
+trybuild2 = "1.2.0"

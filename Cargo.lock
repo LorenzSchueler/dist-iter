@@ -129,7 +129,7 @@ dependencies = [
  "dist-iter-macros",
  "linkme",
  "mpi",
- "trybuild",
+ "trybuild2",
 ]
 
 [[package]]
@@ -524,10 +524,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "trybuild"
-version = "1.0.89"
+name = "trybuild2"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a9d3ba662913483d6722303f619e75ea10b7855b0f8e0d72799cf8621bb488f"
+checksum = "9e7ab1c31cd9e92e56b63f4d85a6c6a854880aaf433191623f5d50e152dcdbc2"
 dependencies = [
  "basic-toml",
  "glob",
