@@ -84,4 +84,13 @@ fn compile_fail() {
         "tests/compile_fail_tests/task_macro_misuse/map_wrong_return_type.rs",
         "expected `i32`, found `u32`",
     );
+
+    t.compile_fail_check_sub(
+        "tests/compile_fail_tests/setup/missing_setup_fn.rs",
+        "cannot find function `setup` in this scope",
+    );
+    t.compile_fail_check_sub(
+        "tests/compile_fail_tests/setup/setup_fn_with_args.rs",
+        "note: expected fn pointer `fn()`",
+    );
 }

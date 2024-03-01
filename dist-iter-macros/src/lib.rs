@@ -33,6 +33,7 @@ pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
         let main_inner = input.block;
         quote!(
             fn main() -> ::std::process::ExitCode {
+                let _: fn() = #setup; // for better compiler error if setup takes arguments
                 #setup();
                 ::dist_iter::main(master)
             }
