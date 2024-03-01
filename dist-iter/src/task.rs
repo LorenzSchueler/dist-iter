@@ -76,22 +76,14 @@ macro_rules! task {
             };
 
             let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
-            eprintln!(
-                "    > [{}] data of length {:?}",
-                std::process::id(),
-                recv_buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", recv_buf.len());
             let result = function(recv_buf);
 
             let mut send_buf = ::dist_iter::UninitBuffer::<_, $OUT>::new();
             for item in result {
                 send_buf.push_back_unchecked(item);
             }
-            eprintln!(
-                "    < [{}] data of length {:?}",
-                std::process::id(),
-                send_buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", send_buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&*send_buf, tag);
@@ -114,18 +106,10 @@ macro_rules! task {
             };
 
             let (mut buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
-            eprintln!(
-                "    > [{}] data of length {:?}",
-                std::process::id(),
-                buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", buf.len());
             function(&mut buf);
 
-            eprintln!(
-                "    < [{}] data of length {:?}",
-                std::process::id(),
-                buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&*buf, tag);
@@ -153,19 +137,11 @@ macro_rules! no_response_task {
             };
 
             let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
-            eprintln!(
-                "    > [{}] data of length {:?}",
-                std::process::id(),
-                recv_buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", recv_buf.len());
             function(recv_buf);
 
             let send_buf: [u8; 0] = [];
-            eprintln!(
-                "    < [{}] data of length {:?}",
-                std::process::id(),
-                send_buf.len()
-            );
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", send_buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&send_buf, tag);

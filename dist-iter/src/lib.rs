@@ -14,6 +14,9 @@ use mpi::{
     traits::{Communicator, Source},
     Rank,
 };
+#[doc(hidden)]
+pub use tracing;
+use tracing::{error_span, trace};
 
 mod function_registry;
 mod iter;
@@ -46,8 +49,10 @@ pub fn main(master: fn()) -> ExitCode {
     }
 
     if world.rank() == MASTER {
+        let _span = error_span!("master").entered();
         master();
     } else {
+        let _span = error_span!("worker", id = world.rank()).entered();
         worker();
     }
 
@@ -57,11 +62,17 @@ pub fn main(master: fn()) -> ExitCode {
 fn worker() {
     let world = SimpleCommunicator::world();
     loop {
+        trace!(target: "dist_iter::worker_loop", "waiting for chunk ...");
         let (msg, status) = world.process_at_rank(MASTER).matched_probe();
+        trace!(target: "dist_iter::worker_loop", "chunk available");
 
+        trace!(target: "dist_iter::worker_loop", "processing chunk ...");
         let execute = function_registry::tag_to_execute(status.tag());
         let worker_mode = execute(msg);
+        trace!(target: "dist_iter::worker_loop", "finished chunk");
+
         if worker_mode.is_terminate() {
+            trace!(target: "dist_iter::worker_loop", "shutting down ...");
             break;
         }
     }

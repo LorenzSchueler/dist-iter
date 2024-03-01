@@ -6,6 +6,7 @@ use mpi::{
     traits::{Communicator, Equivalence, Source},
     Count,
 };
+use tracing::trace;
 
 use crate::{iter::chunk_distributor::ChunkDistributor, task::Task, uninit_buffer::UninitBuffer};
 
@@ -66,7 +67,7 @@ where
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
-            eprintln!("< data of length {:?}", self.buf.len());
+            trace!("received chunk of length {}", self.buf.len());
 
             let process = self.world.process_at_rank(rank);
             if self.chunk_distributor.send_next_to(process, T::TAG) {
@@ -135,7 +136,7 @@ where
             // SAFETY: recv_len additional elements have been written at the end of the vector (within its reserved capacity)
             unsafe { vec.set_len(len + recv_len) };
             recv_count += 1;
-            eprintln!("< data of length {:?}", recv_len);
+            trace!("received chunk of length {}", recv_len);
 
             let process = world.process_at_rank(rank);
             if self.chunk_distributor.send_next_to(process, T::TAG) {

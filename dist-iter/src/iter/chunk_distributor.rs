@@ -3,6 +3,7 @@ use mpi::{
     traits::{Destination, Equivalence},
     Tag,
 };
+use tracing::trace;
 
 use crate::UninitBuffer;
 
@@ -43,7 +44,7 @@ where
         }
         #[allow(unstable_name_collisions)]
         if !self.buf.is_empty() {
-            eprintln!("> data of length {:?}", self.buf.len());
+            trace!("sending chunk of length {}", self.buf.len());
             process.send_with_tag(&*self.buf, tag);
             self.buf.clear();
             true

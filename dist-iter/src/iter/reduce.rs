@@ -4,6 +4,7 @@ use mpi::{
     topology::SimpleCommunicator,
     traits::{Communicator, Equivalence, Source},
 };
+use tracing::trace;
 
 use crate::{iter::chunk_distributor::ChunkDistributor, task::Task};
 
@@ -50,7 +51,7 @@ where
         if send_count > 0 {
             let (result, status) = world.any_process().receive_with_tag(T::TAG);
             recv_count += 1;
-            eprintln!("< reduce result");
+            trace!("received reduce result");
 
             let process = world.process_at_rank(status.source_rank());
             if self.chunk_distributor.send_next_to(process, T::TAG) {
@@ -61,7 +62,7 @@ where
             while recv_count < send_count {
                 let (result, status) = world.any_process().receive_with_tag(T::TAG);
                 recv_count += 1;
-                eprintln!("< reduce result");
+                trace!("received reduce result");
 
                 let process = world.process_at_rank(status.source_rank());
                 if self.chunk_distributor.send_next_to(process, T::TAG) {
