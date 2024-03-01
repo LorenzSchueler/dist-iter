@@ -1,9 +1,8 @@
 use dist_iter::{map_task, DistIterator};
 use mpi::traits::Equivalence;
 
-#[test]
-#[dist_iter::test]
-fn custom_type() {
+#[dist_iter::main]
+fn main() {
     #[derive(Equivalence, Debug)]
     struct Wrapper {
         x: i32,
