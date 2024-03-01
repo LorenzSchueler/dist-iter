@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 dist-iter = { path = ".." }
 mpi = "0.7"
+tracing-subscriber = "0.3.18"
