@@ -1,19 +1,39 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::ItemFn;
+use syn::{ItemFn, MetaNameValue};
 
 #[proc_macro_attribute]
-pub fn main(_args: TokenStream, item: TokenStream) -> TokenStream {
+pub fn main(args: TokenStream, item: TokenStream) -> TokenStream {
     let input: ItemFn = syn::parse2(item.into()).unwrap();
 
     if input.sig.ident != "main" {
         panic!("only the main function can be annotated with `dist_iter::main`")
-    } else if !input.sig.inputs.is_empty() {
+    }
+    if !input.sig.inputs.is_empty() {
         panic!("the main function cannot accept arguments")
-    } else {
+    }
+    if args.is_empty() {
         let main_inner = input.block;
         quote!(
             fn main() -> ::std::process::ExitCode {
+                ::dist_iter::main(master)
+            }
+
+            fn master() {
+                #main_inner
+            }
+        )
+        .into()
+    } else {
+        let args: MetaNameValue = syn::parse2(args.into()).unwrap();
+        if !args.path.is_ident("setup") {
+            panic!("expected key `setup`")
+        }
+        let setup = args.value;
+        let main_inner = input.block;
+        quote!(
+            fn main() -> ::std::process::ExitCode {
+                #setup();
                 ::dist_iter::main(master)
             }
 
