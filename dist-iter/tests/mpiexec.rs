@@ -9,6 +9,8 @@ use termcolor::Color;
 
 mod utils;
 use utils::term;
+// include as module for `cargo fmt` and `cargo clippy` to work
+//mod mpiexec_tests;
 
 macro_rules! test {
     ($name:expr) => {{
@@ -54,6 +56,9 @@ fn mpiexec() -> ExitCode {
     let mut exit = ExitCode::SUCCESS;
     for file in fs::read_dir("tests/mpiexec_tests").unwrap() {
         let path = file.unwrap().path();
+        if path.file_name().unwrap() == "mod.rs" {
+            continue;
+        }
         test!(path.to_str().unwrap());
         let file_prefix = path.file_prefix().unwrap();
 
