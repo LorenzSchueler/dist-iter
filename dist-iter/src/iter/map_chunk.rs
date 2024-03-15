@@ -58,6 +58,7 @@ where
             return Some(item);
         }
         if !self.init {
+            self.init = true;
             for dest in 1..self.world.size() {
                 let process = self.world.process_at_rank(dest);
                 if self.chunk_distributor.send_next_to(process, T::TAG) {
