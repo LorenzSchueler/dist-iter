@@ -6,7 +6,7 @@ use mpi::{
     traits::{Communicator, Equivalence, Source},
     Count,
 };
-use tracing::trace;
+use tracing::{error_span, trace};
 
 use crate::{iter::chunk_distributor::ChunkDistributor, task::Task, uninit_buffer::UninitBuffer};
 
@@ -52,6 +52,8 @@ where
     type Item = T::Out;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let _span = error_span!("task", id = T::TAG).entered();
+
         if let Some(item) = self.buf.next() {
             return Some(item);
         }
@@ -62,23 +64,28 @@ where
                     self.send_count += 1;
                 }
             }
+            trace!("init send complete");
         }
         while self.recv_count < self.send_count {
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
-            trace!("received chunk of length {}", self.buf.len());
+            trace!(
+                "received chunk of length {} from worker {}",
+                self.buf.len(),
+                rank
+            );
 
             let process = self.world.process_at_rank(rank);
             if self.chunk_distributor.send_next_to(process, T::TAG) {
                 self.send_count += 1;
             }
-            // if chunk was empty receive next one til we get a non empty one or recv_count == send_count
+            // if chunk was empty, receive next one until a non empty one is received or recv_count == send_count
             if let Some(item) = self.buf.next() {
                 return Some(item);
             }
         }
-        self.buf.next()
+        None
     }
 }
 

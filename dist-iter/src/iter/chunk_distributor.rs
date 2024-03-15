@@ -44,8 +44,13 @@ where
         }
         #[allow(unstable_name_collisions)]
         if !self.buf.is_empty() {
-            trace!("sending chunk of length {}", self.buf.len());
+            trace!(
+                "sending chunk of length {} to worker {} ...",
+                self.buf.len(),
+                process.rank()
+            );
             process.send_with_tag(&*self.buf, tag);
+            trace!("chunk sent to worker {}", process.rank());
             self.buf.clear();
             true
         } else {

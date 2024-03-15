@@ -38,9 +38,7 @@ pub struct ForEachTask<T: Task> {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_execute_and_return_task {
-    ($in:ty, $out:ty, $IN:literal, $OUT:literal) => {{
-        const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
-
+    ($in:ty, $out:ty, $IN:literal, $OUT:literal, $TAG:expr) => {{
         #[::dist_iter::linkme::distributed_slice(::dist_iter::FUNCTION_REGISTRY)]
         #[linkme(crate = ::dist_iter::linkme)]
         static REGISTRY_ENTRY: ::dist_iter::RegistryEntry = (TAG, execute);
@@ -75,6 +73,9 @@ macro_rules! task {
                 topology::{Communicator, SimpleCommunicator},
             };
 
+            let _span = ::dist_iter::tracing::error_span!("task", id = TAG).entered();
+
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "receiving chunk ...");
             let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", recv_buf.len());
             let result = function(recv_buf);
@@ -83,15 +84,18 @@ macro_rules! task {
             for item in result {
                 send_buf.push_back_unchecked(item);
             }
-            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", send_buf.len());
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {} ...", send_buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&*send_buf, tag);
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "chunk sent");
 
             ::dist_iter::WorkerMode::Continue
         }
 
-        ::dist_iter::register_execute_and_return_task!($in, $out, $IN, $OUT)
+        const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
+
+        ::dist_iter::register_execute_and_return_task!($in, $out, $IN, $OUT, TAG)
     }};
     (CHUNK_SIZE = $IN:literal, |$closure_param:ident: &mut [$in:ty]| $closure_block:block) => {{
         #[inline(always)]
@@ -105,19 +109,25 @@ macro_rules! task {
                 topology::{Communicator, SimpleCommunicator},
             };
 
+            let _span = ::dist_iter::tracing::error_span!("task", id = TAG).entered();
+
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "receiving chunk ...");
             let (mut buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", buf.len());
             function(&mut buf);
 
-            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", buf.len());
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {} ...", buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&*buf, tag);
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "chunk sent");
 
             ::dist_iter::WorkerMode::Continue
         }
 
-        ::dist_iter::register_execute_and_return_task!($in, $in, $IN, $IN)
+        const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
+
+        ::dist_iter::register_execute_and_return_task!($in, $in, $IN, $IN, TAG)
     }};
 }
 
@@ -136,20 +146,26 @@ macro_rules! no_response_task {
                 topology::{Communicator, SimpleCommunicator},
             };
 
+            let _span = ::dist_iter::tracing::error_span!("task", id = TAG).entered();
+
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "receiving chunk ...");
             let (recv_buf, tag) = ::dist_iter::UninitBuffer::<_, $IN>::from_matched_receive(msg);
             ::dist_iter::tracing::trace!(target: "dist_iter::task", "received chunk of length {}", recv_buf.len());
             function(recv_buf);
 
             let send_buf: [u8; 0] = [];
-            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {}", send_buf.len());
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "sending chunk of length {} ...", send_buf.len());
             SimpleCommunicator::world()
                 .process_at_rank(::dist_iter::MASTER)
                 .send_with_tag(&send_buf, tag);
+            ::dist_iter::tracing::trace!(target: "dist_iter::task", "chunk sent");
 
             ::dist_iter::WorkerMode::Continue
         }
 
-        ::dist_iter::register_execute_and_return_task!($in, u8, $IN, 0)
+        const TAG: ::dist_iter::mpi::Tag = ::dist_iter::gen_tag(file!(), line!(), column!());
+
+        ::dist_iter::register_execute_and_return_task!($in, u8, $IN, 0, TAG)
     }};
 }
 
