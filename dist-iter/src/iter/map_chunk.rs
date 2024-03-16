@@ -3,16 +3,17 @@ use std::marker::PhantomData;
 use mpi::{
     datatype::MutView,
     topology::SimpleCommunicator,
-    traits::{Communicator, Destination, Equivalence, Source},
+    traits::{Communicator, Equivalence, Source},
     Count,
 };
 use tracing::{error_span, trace};
 
 use crate::{
-    function_registry::{register_new_task, TaskInstanceMapping, REGISTER_TASK_ID},
+    function_registry::{register_new_task, send_task_instance_mapping, TaskInstanceMapping},
     iter::chunk_distributor::ChunkDistributor,
     task::Task,
     uninit_buffer::UninitBuffer,
+    utils::CommunicatorExt,
     TaskInstanceId,
 };
 
@@ -69,20 +70,9 @@ where
             self.init = true;
 
             let task_instance_mapping = TaskInstanceMapping::new(T::ID, self.task_instance_id);
-            for dest in 1..self.world.size() {
-                trace!(
-                    "sending task mapping {} -> {} to worker {} ...",
-                    task_instance_mapping.task_instance_id(),
-                    task_instance_mapping.task_id(),
-                    dest
-                );
-                let process = self.world.process_at_rank(dest);
-                process.send_with_tag(&task_instance_mapping, *REGISTER_TASK_ID);
-                trace!("task mapping sent to worker {}", dest);
-            }
+            send_task_instance_mapping(task_instance_mapping, &self.world);
 
-            for dest in 1..self.world.size() {
-                let process = self.world.process_at_rank(dest);
+            for process in self.world.workers() {
                 if self
                     .chunk_distributor
                     .send_next_to(process, self.task_instance_id)
@@ -154,20 +144,9 @@ where
         let mut vec = Vec::new();
 
         let task_instance_mapping = TaskInstanceMapping::new(T::ID, task_instance_id);
-        for dest in 1..world.size() {
-            trace!(
-                "sending task mapping {} -> {} to worker {} ...",
-                task_instance_mapping.task_instance_id(),
-                task_instance_mapping.task_id(),
-                dest
-            );
-            let process = world.process_at_rank(dest);
-            process.send_with_tag(&task_instance_mapping, *REGISTER_TASK_ID);
-            trace!("task mapping sent to worker {}", dest);
-        }
+        send_task_instance_mapping(task_instance_mapping, &world);
 
-        for dest in 1..world.size() {
-            let process = world.process_at_rank(dest);
+        for process in world.workers() {
             if self
                 .chunk_distributor
                 .send_next_to(process, task_instance_id)

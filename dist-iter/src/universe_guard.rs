@@ -6,7 +6,7 @@ use mpi::{
 };
 use tracing::{error_span, trace};
 
-use crate::{function_registry::SHUTDOWN_TASK_ID, MASTER};
+use crate::{function_registry::SHUTDOWN_TASK_ID, utils::CommunicatorExt, MASTER};
 
 pub(crate) struct UniverseGuard {
     universe: Universe,
@@ -24,12 +24,10 @@ impl Drop for UniverseGuard {
         if world.rank() == MASTER {
             let _span = error_span!("master").entered();
             let buf: [u8; 0] = [];
-            for dest in 1..world.size() {
-                trace!("sending shutdown message to worker {}", dest);
-                world
-                    .process_at_rank(dest)
-                    .send_with_tag(&buf, *SHUTDOWN_TASK_ID);
-                trace!("shutdown message sent to worker {}", dest);
+            for process in world.workers() {
+                trace!("sending shutdown message to worker {}", process.rank());
+                process.send_with_tag(&buf, *SHUTDOWN_TASK_ID);
+                trace!("shutdown message sent to worker {}", process.rank());
             }
         }
     }

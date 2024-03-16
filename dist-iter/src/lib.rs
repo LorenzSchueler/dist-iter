@@ -24,6 +24,7 @@ mod iter;
 mod task;
 mod uninit_buffer;
 pub mod universe_guard;
+mod utils;
 
 pub use crate::iter::DistIterator;
 use crate::{function_registry::TaskInstanceId, universe_guard::UniverseGuard};

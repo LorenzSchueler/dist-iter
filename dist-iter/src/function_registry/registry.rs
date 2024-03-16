@@ -7,10 +7,13 @@ use std::{
 };
 
 use linkme::distributed_slice;
-use mpi::{point_to_point::Message, Tag};
+use mpi::{point_to_point::Message, topology::SimpleCommunicator, traits::Destination, Tag};
 use tracing::trace;
 
-use crate::function_registry::{TaskId, TaskInstanceId, TaskInstanceMapping};
+use crate::{
+    function_registry::{TaskId, TaskInstanceId, TaskInstanceMapping},
+    utils::CommunicatorExt,
+};
 
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +69,7 @@ fn shutdown(msg: Message) -> WorkerMode {
     WorkerMode::Terminate
 }
 
-pub(crate) const REGISTER_TASK_ID: TaskInstanceId = TaskInstanceId::new(1);
+const REGISTER_TASK_ID: TaskInstanceId = TaskInstanceId::new(1);
 
 fn register_incoming_task(msg: Message) -> WorkerMode {
     trace!(target: "dist_iter::register_task", "receiving task mapping ...");
@@ -113,6 +116,22 @@ pub(crate) fn register_new_task(task_id: TaskId) -> TaskInstanceId {
         .unwrap()
         .insert(task_instance_id, func);
     task_instance_id
+}
+
+pub(crate) fn send_task_instance_mapping(
+    task_instance_mapping: TaskInstanceMapping,
+    world: &SimpleCommunicator,
+) {
+    for process in world.workers() {
+        trace!(
+            "sending task mapping {} -> {} to worker {} ...",
+            task_instance_mapping.task_instance_id(),
+            task_instance_mapping.task_id(),
+            process.rank()
+        );
+        process.send_with_tag(&task_instance_mapping, *REGISTER_TASK_ID);
+        trace!("task mapping sent to worker {}", process.rank());
+    }
 }
 
 #[doc(hidden)]
