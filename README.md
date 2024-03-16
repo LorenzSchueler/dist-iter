@@ -18,8 +18,7 @@ Example:
    This is useful for things like initializing `tracing_subscriber`.
    This setup function is executed before the code in main.
 2. Replace those adapters which should be executed in parallel with their `dist_*` equivalent and wrap the closure with the appropriate macro
-3. Make sure only a single thread calls methods from `DistIterator`
-4. The items which are sent must implement `mpi::traits::Equivalence`. `Equivalence` is already implemented for all integer and floating point types and for bool. You can derive `Equivalence` for your own structs if all fields implement `Equivalence`.
+3. The items which are sent must implement `mpi::traits::Equivalence`. `Equivalence` is already implemented for all integer and floating point types and for bool. You can derive `Equivalence` for your own structs if all fields implement `Equivalence`.
     https://github.com/LorenzSchueler/dist-iter/blob/885638d42b080fc7033797be07ee9cc0a1c2fea7/dist-iter/examples/readme-equivalence.rs#L3-L7
 
 ## How it works

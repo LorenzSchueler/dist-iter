@@ -3,12 +3,18 @@ use std::marker::PhantomData;
 use mpi::{
     datatype::MutView,
     topology::SimpleCommunicator,
-    traits::{Communicator, Equivalence, Source},
+    traits::{Communicator, Destination, Equivalence, Source},
     Count,
 };
 use tracing::{error_span, trace};
 
-use crate::{iter::chunk_distributor::ChunkDistributor, task::Task, uninit_buffer::UninitBuffer};
+use crate::{
+    function_registry::{register_new_task, TaskInstanceMapping, REGISTER_TASK_ID},
+    iter::chunk_distributor::ChunkDistributor,
+    task::Task,
+    uninit_buffer::UninitBuffer,
+    TaskInstanceId,
+};
 
 #[must_use = "iterator adaptors are lazy and do nothing unless consumed"]
 pub(super) struct MapChunk<I, T, const IN: usize, const OUT: usize>
@@ -23,6 +29,7 @@ where
     recv_count: usize,
     init: bool,
     world: SimpleCommunicator,
+    task_instance_id: TaskInstanceId,
 }
 
 impl<I, T, const IN: usize, const OUT: usize> MapChunk<I, T, IN, OUT>
@@ -39,6 +46,7 @@ where
             recv_count: 0,
             init: false,
             world: SimpleCommunicator::world(),
+            task_instance_id: register_new_task(T::ID),
         }
     }
 }
@@ -52,34 +60,56 @@ where
     type Item = T::Out;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let _span = error_span!("task", id = T::TAG).entered();
+        let _span = error_span!("task", id = %self.task_instance_id).entered();
 
         if let Some(item) = self.buf.next() {
             return Some(item);
         }
         if !self.init {
             self.init = true;
+
+            let task_instance_mapping = TaskInstanceMapping::new(T::ID, self.task_instance_id);
+            for dest in 1..self.world.size() {
+                trace!(
+                    "sending task mapping {} -> {} to worker {} ...",
+                    task_instance_mapping.task_instance_id(),
+                    task_instance_mapping.task_id(),
+                    dest
+                );
+                let process = self.world.process_at_rank(dest);
+                process.send_with_tag(&task_instance_mapping, *REGISTER_TASK_ID);
+                trace!("task mapping sent to worker {}", dest);
+            }
+
             for dest in 1..self.world.size() {
                 let process = self.world.process_at_rank(dest);
-                if self.chunk_distributor.send_next_to(process, T::TAG) {
+                if self
+                    .chunk_distributor
+                    .send_next_to(process, self.task_instance_id)
+                {
                     self.send_count += 1;
                 }
             }
             trace!("init send complete");
         }
         while self.recv_count < self.send_count {
-            trace!("receiving chunk ...");
+            trace!("receiving response ...");
             let process = self.world.any_process();
-            let rank = self.buf.receive_into_with_tag(process, T::TAG);
+            let rank = self
+                .buf
+                .receive_into_with_task_instance_id(process, self.task_instance_id);
             self.recv_count += 1;
             trace!(
-                "received chunk of length {} from worker {}",
+                "received response of length {} from worker {}",
                 self.buf.len(),
                 rank
             );
 
             let process = self.world.process_at_rank(rank);
-            if self.chunk_distributor.send_next_to(process, T::TAG) {
+            if self
+                .chunk_distributor
+                .send_next_to(process, self.task_instance_id)
+            {
                 self.send_count += 1;
             }
             // if chunk was empty, receive next one until a non empty one is received or recv_count == send_count
@@ -115,16 +145,33 @@ where
     }
 
     pub(super) fn collect(mut self) -> Vec<T::Out> {
-        let _span = error_span!("task", id = T::TAG).entered();
+        let task_instance_id = register_new_task(T::ID);
+        let _span = error_span!("task", id = %task_instance_id).entered();
 
         let world = SimpleCommunicator::world();
         let mut send_count = 0;
         let mut recv_count = 0;
         let mut vec = Vec::new();
 
+        let task_instance_mapping = TaskInstanceMapping::new(T::ID, task_instance_id);
+        for dest in 1..world.size() {
+            trace!(
+                "sending task mapping {} -> {} to worker {} ...",
+                task_instance_mapping.task_instance_id(),
+                task_instance_mapping.task_id(),
+                dest
+            );
+            let process = world.process_at_rank(dest);
+            process.send_with_tag(&task_instance_mapping, *REGISTER_TASK_ID);
+            trace!("task mapping sent to worker {}", dest);
+        }
+
         for dest in 1..world.size() {
             let process = world.process_at_rank(dest);
-            if self.chunk_distributor.send_next_to(process, T::TAG) {
+            if self
+                .chunk_distributor
+                .send_next_to(process, task_instance_id)
+            {
                 send_count += 1;
             }
         }
@@ -142,18 +189,25 @@ where
                 MutView::with_count_and_datatype(vec_end, T::OUT as Count, &datatype)
             };
 
-            trace!("receiving chunk ...");
+            trace!("receiving response ...");
             let process = world.any_process();
-            let status = process.receive_into_with_tag(&mut buf, T::TAG);
+            let status = process.receive_into_with_tag(&mut buf, *task_instance_id);
             let rank = status.source_rank();
             let recv_len = status.count(datatype) as usize;
             // SAFETY: recv_len additional elements have been written at the end of the vector (within its reserved capacity)
             unsafe { vec.set_len(len + recv_len) };
             recv_count += 1;
-            trace!("received chunk of length {} from worker {}", recv_len, rank);
+            trace!(
+                "received response of length {} from worker {}",
+                recv_len,
+                rank
+            );
 
             let process = world.process_at_rank(rank);
-            if self.chunk_distributor.send_next_to(process, T::TAG) {
+            if self
+                .chunk_distributor
+                .send_next_to(process, task_instance_id)
+            {
                 send_count += 1;
             }
         }

@@ -1,6 +1,7 @@
 #![feature(associated_const_equality)]
 #![feature(maybe_uninit_slice)]
 #![feature(maybe_uninit_uninit_array)]
+#![feature(lazy_cell)]
 
 use std::process::ExitCode;
 
@@ -22,13 +23,13 @@ mod function_registry;
 mod iter;
 mod task;
 mod uninit_buffer;
-mod universe_guard;
+pub mod universe_guard;
 
 pub use crate::iter::DistIterator;
-use crate::universe_guard::UniverseGuard;
+use crate::{function_registry::TaskInstanceId, universe_guard::UniverseGuard};
 #[doc(hidden)]
 pub use crate::{
-    function_registry::{gen_tag, RegistryEntry, WorkerMode, FUNCTION_REGISTRY},
+    function_registry::{gen_task_id, RegistryEntry, TaskId, WorkerMode, FUNCTION_REGISTRY},
     task::*,
     uninit_buffer::UninitBuffer,
 };
@@ -62,14 +63,16 @@ pub fn main(master: fn()) -> ExitCode {
 fn worker() {
     let world = SimpleCommunicator::world();
     loop {
-        trace!(target: "dist_iter::worker_loop", "waiting for chunk ...");
+        trace!(target: "dist_iter::worker_loop", "waiting for task ...");
         let (msg, status) = world.process_at_rank(MASTER).matched_probe();
-        trace!(target: "dist_iter::worker_loop", "chunk available");
+        trace!(target: "dist_iter::worker_loop", "task available");
 
-        trace!(target: "dist_iter::worker_loop", "processing chunk ...");
-        let execute = function_registry::tag_to_execute(status.tag());
+        let task_instance_id = TaskInstanceId::new(status.tag());
+        let _span = error_span!("task", id = %task_instance_id).entered();
+        trace!(target: "dist_iter::worker_loop", "processing task ...");
+        let execute = function_registry::task_instance_id_to_function(task_instance_id);
         let worker_mode = execute(msg);
-        trace!(target: "dist_iter::worker_loop", "finished chunk");
+        trace!(target: "dist_iter::worker_loop", "finished task");
 
         if worker_mode.is_terminate() {
             trace!(target: "dist_iter::worker_loop", "shutting down ...");

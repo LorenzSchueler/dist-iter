@@ -6,8 +6,10 @@ use std::{
 use mpi::{
     point_to_point::Message,
     traits::{Equivalence, Source},
-    Rank, Tag,
+    Rank,
 };
+
+use crate::TaskInstanceId;
 
 pub struct UninitBuffer<T, const N: usize> {
     buf: [MaybeUninit<T>; N],
@@ -62,20 +64,24 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         self.end = 0;
     }
 
-    pub(crate) fn receive_into_with_tag(&mut self, process: impl Source, tag: Tag) -> Rank
+    pub(crate) fn receive_into_with_task_instance_id(
+        &mut self,
+        process: impl Source,
+        task_instance_id: TaskInstanceId,
+    ) -> Rank
     where
         T: Equivalence,
     {
         // SAFETY: buffer is only written to und start & end are updated according to count
         let buf_slice_mut = unsafe { MaybeUninit::slice_assume_init_mut(&mut self.buf) };
-        let status = process.receive_into_with_tag(buf_slice_mut, tag);
+        let status = process.receive_into_with_tag(buf_slice_mut, *task_instance_id);
         self.start = 0;
         self.end = status.count(T::equivalent_datatype()) as usize;
         status.source_rank()
     }
 
     #[doc(hidden)]
-    pub fn from_matched_receive(from: Message) -> (Self, Tag)
+    pub fn from_matched_receive(from: Message) -> (Self, TaskInstanceId)
     where
         T: Equivalence,
     {
@@ -87,7 +93,7 @@ impl<T, const N: usize> UninitBuffer<T, N> {
         let status = from.matched_receive_into(buf_slice_mut);
         uninit_buffer.start = 0;
         uninit_buffer.end = status.count(T::equivalent_datatype()) as usize;
-        (uninit_buffer, status.tag())
+        (uninit_buffer, TaskInstanceId::new(status.tag()))
     }
 }
 

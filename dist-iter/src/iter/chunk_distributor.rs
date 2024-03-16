@@ -1,11 +1,10 @@
 use mpi::{
     topology::{Process, SimpleCommunicator},
     traits::{Destination, Equivalence},
-    Tag,
 };
 use tracing::trace;
 
-use crate::UninitBuffer;
+use crate::{TaskInstanceId, UninitBuffer};
 
 pub(super) struct ChunkDistributor<Iter, const N: usize>
 where
@@ -31,7 +30,7 @@ where
     pub(super) fn send_next_to(
         &mut self,
         process: Process<'_, SimpleCommunicator>,
-        tag: Tag,
+        task_instance_id: TaskInstanceId,
     ) -> bool {
         loop {
             if let Some(mut push_handle) = self.buf.push_handle() {
@@ -45,12 +44,12 @@ where
         #[allow(unstable_name_collisions)]
         if !self.buf.is_empty() {
             trace!(
-                "sending chunk of length {} to worker {} ...",
+                "sending data of length {} to worker {} ...",
                 self.buf.len(),
                 process.rank()
             );
-            process.send_with_tag(&*self.buf, tag);
-            trace!("chunk sent to worker {}", process.rank());
+            process.send_with_tag(&*self.buf, *task_instance_id);
+            trace!("data sent to worker {}", process.rank());
             self.buf.clear();
             true
         } else {
