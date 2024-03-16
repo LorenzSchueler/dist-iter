@@ -68,6 +68,7 @@ where
             trace!("init send complete");
         }
         while self.recv_count < self.send_count {
+            trace!("receiving chunk ...");
             let process = self.world.any_process();
             let rank = self.buf.receive_into_with_tag(process, T::TAG);
             self.recv_count += 1;
@@ -114,6 +115,8 @@ where
     }
 
     pub(super) fn collect(mut self) -> Vec<T::Out> {
+        let _span = error_span!("task", id = T::TAG).entered();
+
         let world = SimpleCommunicator::world();
         let mut send_count = 0;
         let mut recv_count = 0;
@@ -125,6 +128,8 @@ where
                 send_count += 1;
             }
         }
+        trace!("init send complete");
+
         while recv_count < send_count {
             let datatype = T::Out::equivalent_datatype();
 
@@ -137,6 +142,7 @@ where
                 MutView::with_count_and_datatype(vec_end, T::OUT as Count, &datatype)
             };
 
+            trace!("receiving chunk ...");
             let process = world.any_process();
             let status = process.receive_into_with_tag(&mut buf, T::TAG);
             let rank = status.source_rank();
@@ -144,7 +150,7 @@ where
             // SAFETY: recv_len additional elements have been written at the end of the vector (within its reserved capacity)
             unsafe { vec.set_len(len + recv_len) };
             recv_count += 1;
-            trace!("received chunk of length {}", recv_len);
+            trace!("received chunk of length {} from worker {}", recv_len, rank);
 
             let process = world.process_at_rank(rank);
             if self.chunk_distributor.send_next_to(process, T::TAG) {
