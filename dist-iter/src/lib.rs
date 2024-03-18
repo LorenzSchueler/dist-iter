@@ -42,7 +42,11 @@ pub const MASTER: Rank = 0;
 pub fn main(master: fn()) -> ExitCode {
     function_registry::check_registry();
 
-    let universe = UniverseGuard::new(mpi::initialize().unwrap());
+    let universe = UniverseGuard::new(
+        mpi::initialize_with_threading(mpi::Threading::Multiple)
+            .unwrap()
+            .0,
+    );
     let world = universe.world();
 
     if world.size() < 2 {
