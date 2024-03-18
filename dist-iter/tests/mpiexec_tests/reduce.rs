@@ -1,5 +1,6 @@
 use dist_iter::{reduce_task, DistIterator};
 
+#[test]
 #[dist_iter::main]
 fn main() {
     let result = [1, 2, 3, 4, 5]

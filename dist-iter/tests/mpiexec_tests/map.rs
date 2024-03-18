@@ -1,5 +1,6 @@
 use dist_iter::{map_task, DistIterator};
 
+#[test]
 #[dist_iter::main]
 fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]

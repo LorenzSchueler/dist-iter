@@ -1,7 +1,7 @@
 #![feature(path_file_prefix)]
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, ExitCode, Stdio},
 };
 
@@ -51,6 +51,10 @@ fn mpiexec() -> ExitCode {
     if !status.success() {
         println!("can not find mpiexec");
         return ExitCode::FAILURE;
+    }
+
+    if Path::new("").exists() {
+        fs::remove_dir_all("../target/tests/mpiexec").unwrap();
     }
 
     let mut exit = ExitCode::SUCCESS;

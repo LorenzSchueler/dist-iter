@@ -1,5 +1,6 @@
 use dist_iter::{for_each_task, DistIterator};
 
+#[test]
 #[dist_iter::main]
 fn main() {
     [1, 2, 3, 4, 5]

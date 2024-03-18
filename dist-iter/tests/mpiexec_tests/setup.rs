@@ -4,6 +4,7 @@ use dist_iter::{map_task, DistIterator};
 
 static SETUP_RUN: AtomicBool = AtomicBool::new(false);
 
+#[test]
 #[dist_iter::main(setup = setup)]
 fn main() {
     if !SETUP_RUN.load(Ordering::SeqCst) {

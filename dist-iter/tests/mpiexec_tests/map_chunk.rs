@@ -1,5 +1,6 @@
 use dist_iter::{map_chunk_task, DistIterator};
 
+#[test]
 #[dist_iter::main]
 fn main() {
     // map_chunk

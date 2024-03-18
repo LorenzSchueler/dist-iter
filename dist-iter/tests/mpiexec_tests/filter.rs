@@ -4,6 +4,7 @@ use dist_iter::{filter_task, DistIterator};
 
 static LOCAL_COUNT: AtomicI32 = AtomicI32::new(0);
 
+#[test]
 #[dist_iter::main]
 fn main() {
     let mut results: Vec<_> = [1, 2, 3, 4, 5]
