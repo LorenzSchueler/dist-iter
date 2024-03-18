@@ -23,7 +23,7 @@ mod function_registry;
 mod iter;
 mod task;
 mod uninit_buffer;
-pub mod universe_guard;
+mod universe_guard;
 mod utils;
 
 pub use crate::iter::DistIterator;

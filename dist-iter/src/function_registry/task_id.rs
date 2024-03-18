@@ -23,7 +23,7 @@ impl std::fmt::Display for TaskId {
 pub struct TaskInstanceId(Tag);
 
 impl TaskInstanceId {
-    pub const fn new(tag: Tag) -> Self {
+    pub(crate) const fn new(tag: Tag) -> Self {
         Self(tag)
     }
 }

@@ -23,7 +23,7 @@ pub enum WorkerMode {
 }
 
 impl WorkerMode {
-    pub fn is_terminate(self) -> bool {
+    pub(crate) fn is_terminate(self) -> bool {
         self == WorkerMode::Terminate
     }
 }
@@ -134,8 +134,7 @@ pub(crate) fn send_task_instance_mapping(
     }
 }
 
-#[doc(hidden)]
-pub fn task_instance_id_to_function(task_instance_id: TaskInstanceId) -> RegistryFn {
+pub(crate) fn task_instance_id_to_function(task_instance_id: TaskInstanceId) -> RegistryFn {
     *FUNCTION_LOOKUP_TABLE
         .read()
         .unwrap()
